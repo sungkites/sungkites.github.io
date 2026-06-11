@@ -26,8 +26,10 @@ latest_posts:
   limit: 3
 ---
 
-I am Pengfeng Song, currently affiliated with Zhejiang Wanli University.
+Hi,I am Pengfeng Song, a faculty member at Zhejiang Wanli University, where I am engaged in teaching and research.
 
-My interests include artificial intelligence, machine learning, and applied research projects. This website collects my publications, research projects, and academic materials.
+Previously, I worked as a software engineer at Shanghai Pudong Development Bank, where I contributed to financial software development and data analysis. This experience shaped my interest in building reliable software systems and applying data-driven methods to real-world problems.
 
-I am currently updating this page with my recent papers and projects.
+My current interests include artificial intelligence, machine learning, software engineering, and applied research. This website collects my publications, research projects, technical work, and academic materials.
+
+
