@@ -30,7 +30,7 @@ Hi, I am Pengfeng Song, a faculty member at Zhejiang Wanli University, where I a
 
 I received my master's degree in Electronic and Communication Engineering from Ningbo University. Previously, I worked as a software engineer at Shanghai Pudong Development Bank, where I contributed to financial software development and data analysis.
 
-My current interests include artificial intelligence, machine learning, software engineering, and applied research. I am particularly interested in building reliable software systems and applying data-driven methods to real-world problems.
+My current interests include artificial intelligence, machine learning, software engineering, and applied research. 
 
 ## Research
 
