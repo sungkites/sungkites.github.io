@@ -10,7 +10,7 @@ profile:
   image_circular: false
   more_info: >
     <p>Zhejiang Wanli University</p>
-    <p>China</p>
+    <p>Ningbo, Zhejiang, China</p>
 
 selected_papers: false
 social: false
