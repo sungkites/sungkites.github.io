@@ -6,7 +6,7 @@ subtitle: Zhejiang Wanli University
 
 profile:
   align: right
-  image: prof_pic.jpg
+  image: PengfengSong.png
   image_circular: false
   more_info: >
     <p>Zhejiang Wanli University</p>
