@@ -26,7 +26,9 @@ latest_posts:
   limit: 3
 ---
 
-Hi,I am Pengfeng Song, a faculty member at Zhejiang Wanli University, where I am engaged in teaching and research.
+Hi, I am Pengfeng Song, a faculty member at Zhejiang Wanli University, where I am engaged in teaching and research.
+
+I received my master's degree in Electronic and Communication Engineering from Ningbo University.
 
 Previously, I worked as a software engineer at Shanghai Pudong Development Bank, where I contributed to financial software development and data analysis. This experience shaped my interest in building reliable software systems and applying data-driven methods to real-world problems.
 
