@@ -1,10 +1,7 @@
 cv:
   name: Pengfeng Song
-  label: Zhejiang Wanli University
   email: sungkites@163.com
   location: Ningbo, Zhejiang, China
-  summary: Research interests include large language models and agents, multimodal
-    understanding, financial technology and intelligent systems.
   social_networks:
     - network: GitHub
       username: sungkites
