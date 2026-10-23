@@ -74,6 +74,27 @@ jobs:
           sudo apt-get update && sudo apt-get install -y imagemagick
           pip3 install --upgrade nbconvert
 
+      # Theme integration tests exercise demo posts/pages that production excludes.
+      - name: Enable theme fixtures for integration builds
+        run: |
+          python3 - <<'PYCODE'
+          from pathlib import Path
+
+          path = Path("_config.yml")
+          fixtures = {
+              "_posts", "_books", "_projects", "_teachings", "_news",
+              "_pages/blog.md", "_pages/books.md", "_pages/dropdown.md",
+              "_pages/news.md", "_pages/plugins.md", "_pages/profiles.md",
+              "_pages/projects.md", "_pages/repositories.md", "_pages/teaching.md",
+          }
+          excluded_lines = {f"- {name}" for name in fixtures}
+          lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+          path.write_text(
+              "".join(line for line in lines if line.strip() not in excluded_lines),
+              encoding="utf-8",
+          )
+          PYCODE
+
       - name: Run comments integration test 🧪
         run: bash test/integration_comments.sh
 
