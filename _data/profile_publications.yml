@@ -1,0 +1,38 @@
+- id: hfcma
+  title: Hierarchical Fine-Grained Cross-Modal Alignment via Dynamic Granularity Discovery and Optimal Transport
+  authors: Pengfeng Song, Shaozhong Zhang, Pengfei Shao
+  year: 2026
+  venue: arXiv 预印本
+  topic: 多模态图文理解
+  summary: 通过动态粒度发现构建视觉区域与文本短语，结合最优传输进行结构化匹配，研究细粒度图文语义对齐。
+  primary_label: arXiv
+  primary_url: https://arxiv.org/abs/2610.30912
+  pdf: https://arxiv.org/pdf/2610.30912
+  code: https://github.com/sungkites/HFCMA
+  doi: 10.48550/arXiv.2610.30912
+  doi_url: https://doi.org/10.48550/arXiv.2610.30912
+
+- id: tem
+  title: "TEM: Temporal State Tracking Memory for Large Language Model Agents"
+  authors: Pengfeng Song, Yunkai Zhuang, Liye Shi
+  year: 2026
+  venue: arXiv 预印本
+  topic: 大语言模型与智能体
+  summary: 以关联来源的版本化事实追踪信息变化，结合时序状态标注与检索，为智能体提供可区分历史和当前状态的记忆。
+  primary_label: arXiv
+  primary_url: https://arxiv.org/abs/2610.21900
+  pdf: https://arxiv.org/pdf/2610.21900
+  code: https://github.com/sungkites/TEM
+  doi: 10.48550/arXiv.2610.21900
+  doi_url: https://doi.org/10.48550/arXiv.2610.21900
+
+- id: adaboost
+  title: 基于拟合型弱分类器的AdaBoost算法
+  authors: 宋鹏峰，叶庆卫，陆志华，周宇
+  year: 2019
+  venue: 电信科学，35(11)，27–35
+  topic: 机器学习
+  summary: 研究基于拟合型弱分类器的AdaBoost方法，将最小二乘拟合与弱分类器构建相结合，开展分类与人脸检测实验。
+  primary_label: 期刊原文
+  primary_url: https://www.telecomsci.com/zh/article/doi/10.11959/j.issn.1000-0801.2019219/
+  doi: 10.11959/j.issn.1000-0801.2019219
