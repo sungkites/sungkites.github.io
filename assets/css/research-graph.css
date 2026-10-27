@@ -1,23 +1,21 @@
-/* Scoped graph styles; the existing site's typography and layout remain unchanged. */
+/* This component inherits the existing page font and background. */
 .research-graph {
   clear: both;
-  margin: 2rem 0;
-  --rg-core: var(--global-theme-color, #b509ac);
-  --rg-theme: var(--global-theme-color, #b509ac);
-  --rg-paper: #2671c5;
-  --rg-project: #2b9875;
-  --rg-concept: #d37c35;
+  margin: 1.8rem 0 2rem;
+  --rg-core: #536f8b;
+  --rg-theme: #668b9e;
+  --rg-paper: #af815a;
+  --rg-project: #659685;
+  --rg-concept: #91a0aa;
   --rg-text: var(--global-text-color, #333);
-  --rg-muted: var(--global-text-color-light, #666);
-  --rg-line: var(--global-divider-color, #bbb);
   --rg-background: var(--global-bg-color, #fff);
+  --rg-line: #98a8b4;
   color: var(--rg-text);
 }
 .research-graph .rg-stage {
   width: 100%;
-  height: 740px;
+  height: 580px;
   overflow: hidden;
-  touch-action: none;
 }
 .research-graph .rg-canvas {
   display: block;
@@ -33,48 +31,15 @@
 .research-graph .rg-edge {
   fill: none;
   stroke: var(--rg-line);
-  stroke-width: 0.65;
-  opacity: 0.4;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
-.research-graph .rg-edge.rg-bridge {
-  stroke: var(--rg-theme);
-  stroke-width: 0.8;
-  opacity: 0.24;
-}
-.research-graph .rg-edge.rg-primary {
-  stroke: var(--rg-theme);
-  stroke-width: 2.4;
-  opacity: 0.68;
-}
-.research-graph .rg-edge.rg-secondary {
-  stroke: var(--rg-theme);
-  stroke-width: 1.5;
-  opacity: 0.46;
-}
-.research-graph .rg-edge.rg-connected {
-  stroke: var(--rg-theme);
-  stroke-width: 1.6;
-  opacity: 0.95;
-}
 .research-graph .rg-node {
-  cursor: pointer;
+  cursor: grab;
 }
-.research-graph .rg-node .rg-hit {
+.research-graph .rg-hit {
   fill: transparent;
   pointer-events: all;
-}
-.research-graph .rg-halo {
-  fill: var(--rg-core);
-  opacity: 0.1;
-  pointer-events: none;
-}
-.research-graph .rg-node.rg-muted {
-  opacity: 0.22;
-}
-.research-graph .rg-edge.rg-muted {
-  opacity: 0.06;
 }
 .research-graph .rg-label {
   fill: var(--rg-text);
@@ -86,73 +51,18 @@
   stroke-width: 3px;
   stroke-linejoin: round;
 }
-.research-graph .rg-node.rg-major .rg-label,
-.research-graph .rg-node.rg-selected .rg-label {
-  font-weight: 600;
-}
-.research-graph .rg-node.rg-selected .rg-mark,
-.research-graph .rg-node:focus-visible .rg-mark {
-  stroke: var(--rg-text);
-  stroke-width: 1.5;
-  vector-effect: non-scaling-stroke;
+.research-graph .rg-major .rg-label {
+  font-weight: 500;
 }
 .research-graph .rg-node:focus-visible {
   outline: none;
 }
-.research-graph .rg-detail {
-  margin-top: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--rg-line);
-}
-.research-graph .rg-detail[hidden] {
-  display: none;
-}
-.research-graph .rg-detail-kind {
-  font-size: 0.8rem;
-  color: var(--rg-muted);
-  margin: 0 0 0.2rem;
-}
-.research-graph .rg-detail-title {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
-  overflow-wrap: anywhere;
-}
-.research-graph .rg-detail-description {
-  margin-bottom: 0.65rem;
-}
-.research-graph .rg-detail-links,
-.research-graph .rg-neighbors {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem 0.8rem;
-  align-items: center;
-}
-.research-graph .rg-detail-links {
-  margin-bottom: 0.6rem;
-}
-.research-graph .rg-neighbors button {
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--rg-text);
-  background: var(--rg-background);
-  border: 1px solid var(--rg-line);
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  cursor: pointer;
-}
-.research-graph .rg-neighbors button:hover {
-  color: var(--rg-theme);
-  border-color: var(--rg-theme);
-}
-.research-graph .rg-neighbors button:focus-visible {
-  outline: 2px solid var(--rg-theme);
-  outline-offset: 2px;
+.research-graph .rg-node:focus-visible .rg-mark {
+  stroke: var(--rg-text);
+  stroke-width: 1.5px;
 }
 @media (max-width: 600px) {
   .research-graph .rg-stage {
-    height: 610px;
-  }
-  .research-graph .rg-neighbors button {
-    min-height: 40px;
+    height: 540px;
   }
 }
