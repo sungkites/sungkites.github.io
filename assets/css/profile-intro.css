@@ -1,0 +1,40 @@
+/* Homepage introduction only; no global typography or page styling changes. */
+.personal-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  align-items: start;
+  gap: 2rem;
+  margin: 0;
+}
+.personal-intro .personal-intro__bio {
+  min-width: 0;
+}
+.personal-intro .personal-intro__bio > p:last-child {
+  margin-bottom: 0;
+}
+.personal-intro .personal-intro__location {
+  color: var(--global-text-color-light, var(--global-text-color));
+  font-size: 0.82rem;
+  margin-top: 0.25rem;
+}
+.personal-intro .personal-intro__portrait {
+  width: 150px;
+  margin: 0;
+}
+.personal-intro .personal-intro__portrait img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+@media (max-width: 600px) {
+  .personal-intro {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+  }
+  .personal-intro .personal-intro__portrait {
+    grid-row: 1;
+    width: 128px;
+    justify-self: center;
+  }
+}
