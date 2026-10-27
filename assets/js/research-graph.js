@@ -1,65 +1,33 @@
-/* Independent, dependency-free graph. All styling and events are scoped to its section. */
+/* Personal research graph: no toolbar, dependency or global style changes. */
 (() => {
   "use strict";
   const root = document.getElementById("research-knowledge-graph");
   if (!root) return;
-  const data = JSON.parse(
-    root.querySelector("#research-graph-data").textContent,
-  );
-  const svg = root.querySelector(".rg-canvas");
+  const data = JSON.parse(root.querySelector("#research-graph-data").textContent);
   const stage = root.querySelector(".rg-stage");
-  const search = root.querySelector("#rg-search");
-  const groupSelect = root.querySelector("#rg-group");
-  const picker = root.querySelector("#rg-node-picker");
-  const stats = root.querySelector(".rg-stats");
-  const kindLabels = {
-    theme: "研究领域",
+  const svg = root.querySelector(".rg-canvas");
+  const detail = root.querySelector(".rg-detail");
+  const ns = "http://www.w3.org/2000/svg";
+  const names = {
+    core: "研究主线",
+    theme: "研究方向",
     paper: "公开论文",
     project: "项目 / 资料主题",
     concept: "知识概念",
   };
-  const ns = "http://www.w3.org/2000/svg";
-  const make = (name, attrs = {}, text = "") => {
-    const element = document.createElementNS(ns, name);
-    Object.entries(attrs).forEach(([key, value]) =>
-      element.setAttribute(key, value),
-    );
-    if (text) element.textContent = text;
-    return element;
+  const make = (tag, attrs = {}, text = "") => {
+    const el = document.createElementNS(ns, tag);
+    Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+    if (text) el.textContent = text;
+    return el;
   };
   const camera = make("g");
-  const hullLayer = make("g");
   const edgeLayer = make("g");
   const nodeLayer = make("g");
-  camera.append(hullLayer, edgeLayer, nodeLayer);
+  camera.append(edgeLayer, nodeLayer);
   svg.append(camera);
-  const centers = [
-    [230, 180],
-    [700, 175],
-    [1170, 185],
-    [230, 510],
-    [700, 510],
-    [1170, 510],
-    [440, 850],
-    [1010, 850],
-  ];
-  const desktopCenters = centers.map((center) => [...center]);
-  const mobileCenters = [
-    [230, 180],
-    [700, 180],
-    [230, 510],
-    [700, 510],
-    [230, 840],
-    [700, 840],
-    [230, 1170],
-    [700, 1170],
-  ];
-  let narrowLayout = false;
   const nodes = data.nodes.map((node) => ({ ...node }));
   const byId = new Map(nodes.map((node) => [node.id, node]));
-  const groupMap = new Map(
-    data.groups.map((group, index) => [group.id, { ...group, index }]),
-  );
   const adjacency = new Map(nodes.map((node) => [node.id, []]));
   const edges = data.edges.map((edge) => ({
     ...edge,
@@ -70,210 +38,242 @@
     adjacency.get(edge.source).push({ node: edge.b, relation: edge.relation });
     adjacency.get(edge.target).push({ node: edge.a, relation: edge.relation });
   });
-  data.groups.forEach((group) => {
-    const option = document.createElement("option");
-    option.value = group.id;
-    option.textContent = group.label;
-    groupSelect.append(option);
-    const members = nodes.filter((node) => node.group === group.id);
-    const center = centers[groupMap.get(group.id).index];
-    members.forEach((node, index) => {
-      if (node.kind === "theme") {
-        node.x = center[0];
-        node.y = center[1];
-      } else {
-        const rank = members
-          .filter((member) => member.kind !== "theme")
-          .indexOf(node);
-        const inner = rank < 7;
-        const count = inner
-          ? Math.min(7, members.length - 1)
-          : members.length - 8;
-        const angle =
-          ((inner ? rank : rank - 7) * 2 * Math.PI) / Math.max(count, 1) + 0.23;
-        node.x = center[0] + Math.cos(angle) * (inner ? 90 : 185);
-        node.y = center[1] + Math.sin(angle) * (inner ? 58 : 123);
-      }
-    });
-  });
-  const hulls = new Map(
-    data.groups.map((group) => {
-      const center = centers[groupMap.get(group.id).index];
-      const hull = make("ellipse", {
-        class: "rg-hull",
-        cx: center[0],
-        cy: center[1],
-        rx: 225,
-        ry: 154,
-      });
-      hullLayer.append(hull);
-      return [group.id, hull];
-    }),
-  );
-  edges.forEach((edge) => {
-    edge.element = make("line", {
-      class: edge.a.group === edge.b.group ? "rg-edge" : "rg-edge rg-cross",
-    });
-    edgeLayer.append(edge.element);
-  });
-  nodes.forEach((node) => {
-    const group = make("g", { class: "rg-node", "data-node-id": node.id });
-    const hit = make("circle", { class: "rg-hit" });
-    const type =
-      node.kind === "project"
-        ? "rect"
-        : node.kind === "paper"
-          ? "polygon"
-          : "circle";
-    const mark = make(type, {
-      class: "rg-mark",
-      fill: `var(--rg-${node.kind})`,
-    });
-    const label = make("text", { class: "rg-label" }, node.label);
-    group.append(
-      make("title", {}, `${node.label} · ${kindLabels[node.kind]}`),
-      hit,
-      mark,
-      label,
-    );
-    nodeLayer.append(group);
-    node.element = group;
-    node.mark = mark;
-    node.hit = hit;
-    node.labelElement = label;
-    group.addEventListener("click", (event) => {
-      if (!moved) select(node.id);
-      event.stopPropagation();
-    });
-    group.addEventListener("pointerenter", () => {
-      hovered = node.id;
-      updateLabels();
-    });
-    group.addEventListener("pointerleave", () => {
-      hovered = null;
-      updateLabels();
-    });
-  });
   let width = 1,
     height = 1,
     scale = 1,
     tx = 0,
     ty = 0,
-    fitScale = 1;
-  let selected = null,
+    fitScale = 1,
+    selected = null,
     hovered = null,
-    visible = new Set(nodes.map((node) => node.id));
-  let dragging = null,
-    moved = false,
-    searchMatches = new Set(),
-    frame = null;
-  const radius = (node) =>
-    ({ theme: 7, paper: 6, project: 4.5, concept: 3.1 })[node.kind];
-  function updateLabels() {
+    frame = null,
+    narrow = null;
+  let drag = null,
+    pinch = null,
+    moved = false;
+  const pointers = new Map();
+  const size = (node) =>
+    node.kind === "core"
+      ? 13
+      : node.kind === "theme"
+        ? node.level === 1
+          ? 8
+          : 6.5
+        : node.kind === "paper"
+          ? 5.5
+          : node.kind === "project"
+            ? 4.3
+            : 2.8;
+  const fixed = (node) => node.kind === "core" || node.kind === "theme";
+
+  function layout(isNarrow) {
+    const centers = isNarrow
+      ? {
+          memory: [250, 230],
+          multimodal: [720, 230],
+          safety: [250, 620],
+          evidence: [720, 620],
+          finance: [720, 1010],
+          uav: [250, 1010],
+          systems: [250, 1400],
+          agriculture: [720, 1400],
+          overview: [485, 425],
+        }
+      : {
+          memory: [440, 245],
+          multimodal: [990, 245],
+          safety: [440, 690],
+          evidence: [990, 690],
+          finance: [1260, 55],
+          uav: [120, 415],
+          systems: [185, 975],
+          agriculture: [1300, 975],
+          overview: [720, 470],
+        };
+    data.groups.forEach((group) => {
+      const members = nodes.filter((node) => node.group === group.id && !fixed(node));
+      const center = centers[group.id];
+      members
+        .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
+        .forEach((node, index) => {
+          const angle = index * 2.3999632297 + 0.3;
+          const radius = node.kind === "paper" || node.kind === "project" ? 66 + index * 4 : 55 + Math.sqrt(index + 1) * 23;
+          node.x = center[0] + Math.cos(angle) * radius;
+          node.y = center[1] + Math.sin(angle) * radius * 0.82;
+        });
+    });
+    nodes.filter(fixed).forEach((node) => {
+      node.x = centers[node.group][0];
+      node.y = centers[node.group][1];
+    });
+    // Concepts shared by directions sit between their related branches.
+    nodes
+      .filter((node) => node.kind === "concept")
+      .forEach((node) => {
+        const external = adjacency.get(node.id).filter((item) => item.node.group !== node.group && item.node.kind !== "core");
+        if (external.length) {
+          const x = external.reduce((sum, item) => sum + centers[item.node.group][0], 0) / external.length;
+          const y = external.reduce((sum, item) => sum + centers[item.node.group][1], 0) / external.length;
+          node.x = node.x * 0.78 + x * 0.22;
+          node.y = node.y * 0.78 + y * 0.22;
+        }
+      });
+    // Deterministic spacing, without a continuously moving force simulation.
+    for (let iteration = 0; iteration < 70; iteration++) {
+      for (let i = 0; i < nodes.length; i++)
+        for (let j = i + 1; j < nodes.length; j++) {
+          const a = nodes[i],
+            b = nodes[j];
+          let dx = b.x - a.x,
+            dy = b.y - a.y,
+            distance = Math.hypot(dx, dy);
+          const gap = a.kind === "core" || b.kind === "core" ? 75 : fixed(a) || fixed(b) ? 42 : 25;
+          if (distance >= gap || (fixed(a) && fixed(b))) continue;
+          if (distance < 0.01) {
+            dx = 0.1;
+            dy = 0.1;
+            distance = Math.hypot(dx, dy);
+          }
+          const push = (gap - distance) * 0.52;
+          const ux = dx / distance,
+            uy = dy / distance;
+          if (!fixed(a)) {
+            a.x -= ux * push;
+            a.y -= uy * push;
+          }
+          if (!fixed(b)) {
+            b.x += ux * push;
+            b.y += uy * push;
+          }
+        }
+    }
+  }
+  edges.forEach((edge) => {
+    const classes = {
+      primary: "rg-edge rg-primary",
+      secondary: "rg-edge rg-secondary",
+      bridge: "rg-edge rg-bridge",
+      detail: "rg-edge",
+    };
+    edge.element = make("path", { class: classes[edge.tier] || "rg-edge" });
+    edgeLayer.append(edge.element);
+  });
+  nodes.forEach((node) => {
+    const el = make("g", {
+      class: fixed(node) ? "rg-node rg-major" : "rg-node",
+      "data-node-id": node.id,
+      role: "button",
+      tabindex: node.kind === "core" ? "0" : "-1",
+      "aria-label": `${node.label}，${names[node.kind]}`,
+    });
+    const hit = make("circle", { class: "rg-hit" });
+    const mark = make(node.kind === "project" ? "rect" : node.kind === "paper" ? "polygon" : "circle", {
+      class: "rg-mark",
+      fill: `var(--rg-${node.kind})`,
+    });
+    const label = make("text", { class: "rg-label" }, node.label);
+    el.append(make("title", {}, `${node.label} · ${names[node.kind]}`));
+    if (node.kind === "core") {
+      node.halo = make("circle", { class: "rg-halo" });
+      el.append(node.halo);
+    }
+    el.append(hit, mark, label);
+    nodeLayer.append(el);
+    Object.assign(node, { element: el, mark, hit, labelElement: label });
+    el.addEventListener("pointerenter", () => {
+      hovered = node.id;
+      labels();
+    });
+    el.addEventListener("pointerleave", () => {
+      hovered = null;
+      labels();
+    });
+    el.addEventListener("focus", () => {
+      hovered = node.id;
+      labels();
+    });
+    el.addEventListener("blur", () => {
+      hovered = null;
+      labels();
+    });
+  });
+  function labels() {
     const occupied = [];
+    const isNear = (node) => selected && adjacency.get(selected).some((item) => item.node.id === node.id);
     const priority = (node) =>
-      node.id === hovered || node.id === selected
-        ? -10
-        : searchMatches.has(node.id)
-          ? -5
+      node.id === selected || node.id === hovered
+        ? -20
+        : node.kind === "core"
+          ? -10
           : node.kind === "theme"
-            ? 0
+            ? node.level
             : node.kind === "paper"
-              ? 1
-              : node.kind === "project"
-                ? 2
-                : selected &&
-                    adjacency
-                      .get(selected)
-                      .some((item) => item.node.id === node.id)
-                  ? 3
-                  : 5;
+              ? 3
+              : isNear(node)
+                ? 4
+                : node.kind === "project"
+                  ? 5
+                  : 10 - adjacency.get(node.id).length * 0.15;
     [...nodes]
       .sort((a, b) => priority(a) - priority(b))
       .forEach((node) => {
         const label = node.labelElement;
         label.style.display = "none";
-        if (!visible.has(node.id)) return;
+        if (selected && !fixed(node) && node.id !== selected && node.id !== hovered && !isNear(node)) return;
+        const font = node.kind === "core" ? 15 : node.kind === "theme" ? (node.level === 1 ? 13 : 12) : 11.5;
         const x = node.x * scale + tx,
-          y = node.y * scale + ty + radius(node) + 15;
-        const fontSize = node.kind === "theme" ? 13 : 11.5;
-        const labelWidth = [...node.label].reduce(
-          (sum, char) =>
-            sum + (/[^\x00-\x7F]/.test(char) ? fontSize : fontSize * 0.62),
-          0,
-        );
-        const labelX = Math.max(
-          labelWidth / 2 + 4,
-          Math.min(width - labelWidth / 2 - 4, x),
-        );
+          y = node.y * scale + ty + size(node) + 16;
+        const w = [...node.label].reduce((sum, char) => sum + (/[^\x00-\x7F]/.test(char) ? font : font * 0.6), 0);
+        if (x < -w || x > width + w || y < 0 || y > height + 20) return;
+        const labelX = Math.max(w / 2 + 3, Math.min(width - w / 2 - 3, x));
         const box = {
-          x: labelX - labelWidth / 2 - 4,
-          y: y - fontSize - 2,
-          w: labelWidth + 8,
-          h: fontSize + 7,
+          x: labelX - w / 2 - 3,
+          y: y - font - 2,
+          w: w + 6,
+          h: font + 7,
         };
-        const overlaps = occupied.some(
-          (b) =>
-            box.x < b.x + b.w &&
-            box.x + box.w > b.x &&
-            box.y < b.y + b.h &&
-            box.y + box.h > b.y,
-        );
-        if (
-          x < -labelWidth ||
-          x > width + labelWidth ||
-          y < 0 ||
-          y > height + 20
-        )
-          return;
-        if (overlaps && node.id !== selected && node.id !== hovered) return;
-        if (
-          selected &&
-          node.id !== selected &&
-          node.id !== hovered &&
-          !adjacency.get(selected).some((item) => item.node.id === node.id)
-        )
-          return;
+        const overlap = occupied.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
+        if (overlap && node.id !== hovered && node.id !== selected) return;
         label.style.display = "";
-        label.setAttribute("x", (labelX - x) / scale);
+        label.setAttribute("font-size", font / scale);
         label.setAttribute("text-anchor", "middle");
-        label.setAttribute("y", (radius(node) + 15) / scale);
-        label.setAttribute("font-size", fontSize / scale);
+        label.setAttribute("x", (labelX - x) / scale);
+        label.setAttribute("y", (size(node) + 16) / scale);
         occupied.push(box);
       });
   }
   function draw() {
     camera.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`);
     nodes.forEach((node) => {
-      const r = radius(node) / scale;
+      const r = size(node) / scale;
       node.element.setAttribute("transform", `translate(${node.x},${node.y})`);
-      node.hit.setAttribute("r", 12 / scale);
-      if (node.kind === "project") {
+      node.hit.setAttribute("r", Math.max(size(node) + 4, 10) / scale);
+      if (node.halo) node.halo.setAttribute("r", 25 / scale);
+      if (node.kind === "project")
         Object.entries({
           x: -r,
           y: -r,
           width: r * 2,
           height: r * 2,
           rx: r * 0.2,
-        }).forEach(([k, v]) => node.mark.setAttribute(k, v));
-      } else if (node.kind === "paper") {
-        node.mark.setAttribute(
-          "points",
-          `0,${-r * 1.3} ${r * 1.3},0 0,${r * 1.3} ${-r * 1.3},0`,
-        );
-      } else node.mark.setAttribute("r", r);
+        }).forEach(([key, value]) => node.mark.setAttribute(key, value));
+      else if (node.kind === "paper") node.mark.setAttribute("points", `0,${-r * 1.3} ${r * 1.3},0 0,${r * 1.3} ${-r * 1.3},0`);
+      else node.mark.setAttribute("r", r);
     });
     edges.forEach((edge) => {
-      Object.entries({
-        x1: edge.a.x,
-        y1: edge.a.y,
-        x2: edge.b.x,
-        y2: edge.b.y,
-      }).forEach(([key, value]) => edge.element.setAttribute(key, value));
+      const dx = edge.b.x - edge.a.x,
+        dy = edge.b.y - edge.a.y;
+      if (edge.tier === "primary" || edge.tier === "secondary") {
+        const bend = edge.tier === "primary" ? 0.055 : 0.025;
+        edge.element.setAttribute(
+          "d",
+          `M ${edge.a.x} ${edge.a.y} Q ${(edge.a.x + edge.b.x) / 2 - dy * bend} ${(edge.a.y + edge.b.y) / 2 + dx * bend} ${edge.b.x} ${edge.b.y}`
+        );
+      } else edge.element.setAttribute("d", `M ${edge.a.x} ${edge.a.y} L ${edge.b.x} ${edge.b.y}`);
     });
-    updateLabels();
+    labels();
   }
-  function scheduleDraw() {
+  function schedule() {
     if (!frame)
       frame = requestAnimationFrame(() => {
         frame = null;
@@ -281,65 +281,43 @@
       });
   }
   function fit() {
-    const shown = nodes.filter((node) => visible.has(node.id));
-    if (!shown.length) return;
-    const minX = Math.min(...shown.map((n) => n.x)) - 65,
-      maxX = Math.max(...shown.map((n) => n.x)) + 65;
-    const minY = Math.min(...shown.map((n) => n.y)) - 55,
-      maxY = Math.max(...shown.map((n) => n.y)) + 65;
-    fitScale = Math.min(
-      (width - 20) / (maxX - minX),
-      (height - 35) / (maxY - minY),
-    );
+    const x0 = Math.min(...nodes.map((n) => n.x)) - 75,
+      x1 = Math.max(...nodes.map((n) => n.x)) + 75;
+    const y0 = Math.min(...nodes.map((n) => n.y)) - 55,
+      y1 = Math.max(...nodes.map((n) => n.y)) + 70;
+    fitScale = Math.min((width - 12) / (x1 - x0), (height - 20) / (y1 - y0));
     scale = fitScale;
-    tx = width / 2 - ((minX + maxX) / 2) * scale;
-    ty = height / 2 - ((minY + maxY) / 2) * scale;
+    tx = width / 2 - ((x0 + x1) / 2) * scale;
+    ty = height / 2 - ((y0 + y1) / 2) * scale;
     draw();
   }
   function zoom(factor, x = width / 2, y = height / 2) {
-    const next = Math.max(
-      fitScale * 0.65,
-      Math.min(scale * factor, fitScale * 8),
-    );
+    const next = Math.max(fitScale * 0.7, Math.min(scale * factor, fitScale * 8));
     tx = x - ((x - tx) * next) / scale;
     ty = y - ((y - ty) * next) / scale;
     scale = next;
     draw();
   }
-  function paintSelection() {
-    const near = selected
-      ? new Set([
-          selected,
-          ...adjacency.get(selected).map((item) => item.node.id),
-        ])
-      : null;
+  function paint() {
+    const near = selected ? new Set([selected, ...adjacency.get(selected).map((item) => item.node.id)]) : null;
     nodes.forEach((node) => {
       node.element.classList.toggle("rg-selected", node.id === selected);
-      node.element.classList.toggle(
-        "rg-muted",
-        Boolean(near && !near.has(node.id)),
-      );
+      node.element.classList.toggle("rg-muted", Boolean(near && !near.has(node.id) && !fixed(node)));
     });
     edges.forEach((edge) => {
-      const connected = Boolean(
-        selected && (edge.source === selected || edge.target === selected),
-      );
-      edge.element.classList.toggle("rg-connected", connected);
-      edge.element.classList.toggle(
-        "rg-muted",
-        Boolean(selected && !connected),
-      );
+      const connected = selected && (edge.source === selected || edge.target === selected);
+      edge.element.classList.toggle("rg-connected", Boolean(connected));
+      edge.element.classList.toggle("rg-muted", Boolean(selected && !connected));
     });
-    updateLabels();
+    labels();
   }
   function select(id) {
     const node = byId.get(id);
-    if (!node || !visible.has(id)) return;
+    if (!node) return;
     selected = id;
-    picker.value = id;
-    paintSelection();
-    root.querySelector(".rg-detail-kind").textContent =
-      kindLabels[node.kind] + (node.status ? ` · ${node.status}` : "");
+    paint();
+    detail.hidden = false;
+    root.querySelector(".rg-detail-kind").textContent = names[node.kind] + (node.status ? ` · ${node.status}` : "");
     root.querySelector(".rg-detail-title").textContent = node.title;
     root.querySelector(".rg-detail-description").textContent = node.summary;
     const links = root.querySelector(".rg-detail-links");
@@ -354,210 +332,175 @@
     });
     const neighbors = root.querySelector(".rg-neighbors");
     neighbors.replaceChildren();
-    const caption = document.createElement("span");
-    caption.textContent = "关联知识：";
-    neighbors.append(caption);
     const seen = new Set();
-    adjacency.get(id).forEach((item) => {
-      if (seen.has(item.node.id) || !visible.has(item.node.id)) return;
-      seen.add(item.node.id);
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = item.node.label;
-      button.title = item.relation;
-      button.addEventListener("click", () => select(item.node.id));
-      neighbors.append(button);
-    });
-  }
-  function clearSelection() {
-    selected = null;
-    picker.value = "";
-    paintSelection();
-    root.querySelector(".rg-detail-kind").textContent = "";
-    root.querySelector(".rg-detail-title").textContent = "从一个知识点开始探索";
-    root.querySelector(".rg-detail-description").textContent =
-      "图谱依据研究资料整理。公开论文提供原文链接，其他节点用于展示研究与工程知识的关联。";
-    root.querySelector(".rg-detail-links").replaceChildren();
-    root.querySelector(".rg-neighbors").replaceChildren();
-  }
-  function filter() {
-    clearSelection();
-    const query = search.value.trim().toLocaleLowerCase();
-    const gid = groupSelect.value;
-    searchMatches = new Set(
-      nodes
-        .filter((node) =>
-          (node.label + " " + node.title + " " + node.summary)
-            .toLocaleLowerCase()
-            .includes(query),
-        )
-        .map((node) => node.id),
-    );
-    visible = new Set(
-      nodes
-        .filter(
-          (node) =>
-            (gid === "all" || node.group === gid) &&
-            (!query || searchMatches.has(node.id)),
-        )
-        .map((node) => node.id),
-    );
-    if (!query) searchMatches.clear();
-    nodes.forEach((node) => {
-      node.element.style.display = visible.has(node.id) ? "" : "none";
-    });
-    edges.forEach((edge) => {
-      edge.element.style.display =
-        visible.has(edge.source) && visible.has(edge.target) ? "" : "none";
-    });
-    hulls.forEach((hull, id) => {
-      hull.style.display = nodes.some(
-        (node) => node.group === id && visible.has(node.id),
-      )
-        ? ""
-        : "none";
-    });
-    picker.replaceChildren(new Option("选择知识点，查看简介与关联", ""));
-    data.groups.forEach((group) => {
-      const optgroup = document.createElement("optgroup");
-      optgroup.label = group.label;
-      nodes
-        .filter((node) => node.group === group.id && visible.has(node.id))
-        .forEach((node) => optgroup.append(new Option(node.label, node.id)));
-      if (optgroup.children.length) picker.append(optgroup);
-    });
-    const edgeCount = edges.filter(
-      (edge) => visible.has(edge.source) && visible.has(edge.target),
-    ).length;
-    stats.textContent = `${visible.size} 个节点 · ${edgeCount} 条关联`;
-    root.querySelector(".rg-empty").hidden = visible.size > 0;
-    if (!visible.size) {
-      hulls.forEach((hull) => {
-        hull.style.display = "none";
+    adjacency
+      .get(id)
+      .sort((a, b) => a.node.level - b.node.level)
+      .forEach((item) => {
+        if (seen.has(item.node.id)) return;
+        seen.add(item.node.id);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = item.node.label;
+        button.title = item.relation;
+        button.addEventListener("click", () => {
+          select(item.node.id);
+          focus(item.node.id);
+        });
+        neighbors.append(button);
       });
-    }
-    fit();
   }
-  search.addEventListener("input", filter);
-  groupSelect.addEventListener("change", filter);
-  picker.addEventListener("change", () => {
-    if (picker.value) select(picker.value);
-    else clearSelection();
+  function clear() {
+    selected = null;
+    detail.hidden = true;
+    paint();
+  }
+  function focus(id) {
+    nodes.forEach((node) => node.element.setAttribute("tabindex", node.id === id ? "0" : "-1"));
+    byId.get(id).element.focus({ preventScroll: true });
+  }
+  svg.addEventListener("keydown", (event) => {
+    const active = event.target.closest("[data-node-id]")?.dataset.nodeId || selected || "research-core";
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      select(active);
+    }
+    if (event.key.startsWith("Arrow")) {
+      event.preventDefault();
+      const ordered = [...nodes].sort((a, b) => a.level - b.level);
+      const delta = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
+      const index = (ordered.findIndex((n) => n.id === active) + delta + ordered.length) % ordered.length;
+      focus(ordered[index].id);
+      select(ordered[index].id);
+    }
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      zoom(1.3);
+    }
+    if (event.key === "-") {
+      event.preventDefault();
+      zoom(1 / 1.3);
+    }
+    if (event.key === "0") {
+      event.preventDefault();
+      clear();
+      fit();
+    }
   });
-  root.querySelectorAll("[data-rg-action]").forEach((button) =>
-    button.addEventListener("click", () => {
-      const action = button.dataset.rgAction;
-      if (action === "zoom-in") zoom(1.4);
-      if (action === "zoom-out") zoom(1 / 1.4);
-      if (action === "fit") {
-        clearSelection();
-        fit();
-      }
-      if (action === "fullscreen") {
-        if (document.fullscreenElement === root)
-          document.exitFullscreen().catch(() => {});
-        else if (root.requestFullscreen)
-          root.requestFullscreen().catch(() => {});
-      }
-    }),
-  );
-  const fullscreen = root.querySelector('[data-rg-action="fullscreen"]');
-  if (!document.fullscreenEnabled) fullscreen.hidden = true;
-  document.addEventListener("fullscreenchange", () => {
-    fullscreen.textContent =
-      document.fullscreenElement === root ? "退出全屏" : "全屏";
+  root.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") clear();
+  });
+  svg.addEventListener("dblclick", (event) => {
+    event.preventDefault();
+    clear();
+    fit();
   });
   svg.addEventListener(
     "wheel",
     (event) => {
-      if (!event.ctrlKey) return;
+      if (!event.ctrlKey && !svg.matches(":focus-within")) return;
       event.preventDefault();
-      const r = svg.getBoundingClientRect();
-      zoom(
-        Math.exp(-event.deltaY * 0.002),
-        event.clientX - r.left,
-        event.clientY - r.top,
-      );
+      const box = svg.getBoundingClientRect();
+      zoom(Math.exp(-event.deltaY * 0.002), event.clientX - box.left, event.clientY - box.top);
     },
-    { passive: false },
+    { passive: false }
   );
   svg.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0) return;
-    const target = event.target.closest("[data-node-id]");
-    dragging = {
-      id: target ? target.dataset.nodeId : null,
-      x: event.clientX,
-      y: event.clientY,
-      tx,
-      ty,
-    };
-    moved = false;
-    if (dragging.id) {
-      const node = byId.get(dragging.id);
-      dragging.nx = node.x;
-      dragging.ny = node.y;
-    }
+    if (event.button !== 0 && event.pointerType === "mouse") return;
+    svg.focus({ preventScroll: true });
+    const rect = svg.getBoundingClientRect();
+    pointers.set(event.pointerId, {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
     svg.setPointerCapture(event.pointerId);
+    if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      pinch = {
+        distance: Math.hypot(a.x - b.x, a.y - b.y),
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2,
+        scale,
+        tx,
+        ty,
+      };
+      drag = null;
+    } else if (pointers.size === 1) {
+      const id = event.target.closest("[data-node-id]")?.dataset.nodeId;
+      const node = byId.get(id);
+      drag = {
+        id,
+        x: event.clientX,
+        y: event.clientY,
+        tx,
+        ty,
+        nx: node?.x,
+        ny: node?.y,
+      };
+      moved = false;
+    }
     svg.classList.add("rg-dragging");
   });
   svg.addEventListener("pointermove", (event) => {
-    if (!dragging) return;
-    const dx = event.clientX - dragging.x,
-      dy = event.clientY - dragging.y;
-    if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-    if (dragging.id) {
-      const node = byId.get(dragging.id);
-      node.x = dragging.nx + dx / scale;
-      node.y = dragging.ny + dy / scale;
-    } else {
-      tx = dragging.tx + dx;
-      ty = dragging.ty + dy;
+    if (!pointers.has(event.pointerId)) return;
+    const rect = svg.getBoundingClientRect();
+    pointers.set(event.pointerId, {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    });
+    if (pinch && pointers.size === 2) {
+      const [a, b] = [...pointers.values()];
+      const next = Math.max(fitScale * 0.7, Math.min((pinch.scale * Math.hypot(a.x - b.x, a.y - b.y)) / Math.max(pinch.distance, 1), fitScale * 8));
+      tx = (a.x + b.x) / 2 - ((pinch.x - pinch.tx) * next) / pinch.scale;
+      ty = (a.y + b.y) / 2 - ((pinch.y - pinch.ty) * next) / pinch.scale;
+      scale = next;
+      moved = true;
+      schedule();
+      return;
     }
-    scheduleDraw();
+    if (!drag) return;
+    const dx = event.clientX - drag.x,
+      dy = event.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
+    if (drag.id) {
+      const node = byId.get(drag.id);
+      node.x = drag.nx + dx / scale;
+      node.y = drag.ny + dy / scale;
+    } else {
+      tx = drag.tx + dx;
+      ty = drag.ty + dy;
+    }
+    schedule();
   });
-  const finish = (event) => {
-    if (!dragging) return;
-    const id = dragging.id,
-      wasMoved = moved;
-    dragging = null;
-    svg.classList.remove("rg-dragging");
-    if (svg.hasPointerCapture(event.pointerId))
-      svg.releasePointerCapture(event.pointerId);
-    if (!wasMoved && id) select(id);
-    else if (!wasMoved) clearSelection();
-  };
+  function finish(event) {
+    pointers.delete(event.pointerId);
+    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+    if (pinch) {
+      pinch = null;
+      drag = null;
+    } else if (drag) {
+      const id = drag.id;
+      if (!moved && event.type !== "pointercancel") {
+        if (id) {
+          select(id);
+          focus(id);
+        } else clear();
+      }
+      drag = null;
+    }
+    if (!pointers.size) svg.classList.remove("rg-dragging");
+  }
   svg.addEventListener("pointerup", finish);
-  svg.addEventListener("pointercancel", () => {
-    dragging = null;
-    svg.classList.remove("rg-dragging");
-  });
-  root.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") clearSelection();
-  });
+  svg.addEventListener("pointercancel", finish);
   new ResizeObserver(() => {
     width = stage.clientWidth;
     height = stage.clientHeight;
-    const narrow = width < 600;
-    if (narrow !== narrowLayout) {
-      const target = narrow ? mobileCenters : desktopCenters;
-      data.groups.forEach((group, index) => {
-        const dx = target[index][0] - centers[index][0],
-          dy = target[index][1] - centers[index][1];
-        nodes
-          .filter((node) => node.group === group.id)
-          .forEach((node) => {
-            node.x += dx;
-            node.y += dy;
-          });
-        centers[index][0] = target[index][0];
-        centers[index][1] = target[index][1];
-        hulls.get(group.id).setAttribute("cx", target[index][0]);
-        hulls.get(group.id).setAttribute("cy", target[index][1]);
-      });
-      narrowLayout = narrow;
+    const mode = width < 600;
+    if (mode !== narrow) {
+      narrow = mode;
+      layout(mode);
     }
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     fit();
   }).observe(stage);
-  filter();
 })();
