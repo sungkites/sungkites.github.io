@@ -1,7 +1,8 @@
-/* Site-specific graph only: no global selectors, fonts, theme or layout overrides. */
+/* Scoped graph styles; the existing site's typography and layout remain unchanged. */
 .research-graph {
   clear: both;
   margin: 2rem 0;
+  --rg-core: var(--global-theme-color, #b509ac);
   --rg-theme: var(--global-theme-color, #b509ac);
   --rg-paper: #2671c5;
   --rg-project: #2b9875;
@@ -12,93 +13,9 @@
   --rg-background: var(--global-bg-color, #fff);
   color: var(--rg-text);
 }
-.research-graph .rg-intro,
-.research-graph .rg-help {
-  color: var(--rg-muted);
-}
-.research-graph .rg-controls,
-.research-graph .rg-view-controls,
-.research-graph .rg-legend {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.research-graph .rg-controls {
-  margin: 1rem 0 0.75rem;
-}
-.research-graph .rg-search-label {
-  flex: 1 1 220px;
-}
-.research-graph label {
-  margin: 0;
-}
-.research-graph input,
-.research-graph select,
-.research-graph button {
-  font: inherit;
-  color: var(--rg-text);
-  background: var(--rg-background);
-  border: 1px solid var(--rg-line);
-  border-radius: 4px;
-  padding: 0.35rem 0.6rem;
-  min-height: 36px;
-}
-.research-graph input {
-  width: 100%;
-  min-width: 0;
-}
-.research-graph button {
-  cursor: pointer;
-}
-.research-graph button:hover {
-  border-color: var(--rg-theme);
-  color: var(--rg-theme);
-}
-.research-graph input:focus-visible,
-.research-graph select:focus-visible,
-.research-graph button:focus-visible {
-  outline: 2px solid var(--rg-theme);
-  outline-offset: 2px;
-}
-.research-graph .rg-legend {
-  gap: 0.45rem 1rem;
-  font-size: 0.8rem;
-  color: var(--rg-muted);
-}
-.research-graph .rg-legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.research-graph .rg-dot {
-  width: 9px;
-  height: 9px;
-  display: inline-block;
-  border-radius: 50%;
-}
-.research-graph .rg-dot-theme {
-  background: var(--rg-theme);
-}
-.research-graph .rg-dot-paper {
-  background: var(--rg-paper);
-  transform: rotate(45deg);
-  border-radius: 0;
-}
-.research-graph .rg-dot-project {
-  background: var(--rg-project);
-  border-radius: 1px;
-}
-.research-graph .rg-dot-concept {
-  background: var(--rg-concept);
-}
-.research-graph .rg-stats {
-  margin-left: auto;
-}
 .research-graph .rg-stage {
   width: 100%;
-  height: 630px;
-  margin-top: 0.75rem;
+  height: 740px;
   overflow: hidden;
   touch-action: none;
 }
@@ -113,24 +30,33 @@
 .research-graph .rg-canvas.rg-dragging {
   cursor: grabbing;
 }
-.research-graph .rg-hull {
-  fill: var(--rg-line);
-  opacity: 0.16;
-}
 .research-graph .rg-edge {
+  fill: none;
   stroke: var(--rg-line);
   stroke-width: 0.65;
-  opacity: 0.5;
+  opacity: 0.4;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
-.research-graph .rg-edge.rg-cross {
-  opacity: 0.17;
+.research-graph .rg-edge.rg-bridge {
+  stroke: var(--rg-theme);
+  stroke-width: 0.8;
+  opacity: 0.24;
+}
+.research-graph .rg-edge.rg-primary {
+  stroke: var(--rg-theme);
+  stroke-width: 2.4;
+  opacity: 0.68;
+}
+.research-graph .rg-edge.rg-secondary {
+  stroke: var(--rg-theme);
+  stroke-width: 1.5;
+  opacity: 0.46;
 }
 .research-graph .rg-edge.rg-connected {
   stroke: var(--rg-theme);
-  stroke-width: 1.3;
-  opacity: 0.8;
+  stroke-width: 1.6;
+  opacity: 0.95;
 }
 .research-graph .rg-node {
   cursor: pointer;
@@ -139,9 +65,16 @@
   fill: transparent;
   pointer-events: all;
 }
-.research-graph .rg-node.rg-muted,
-.research-graph .rg-edge.rg-muted {
+.research-graph .rg-halo {
+  fill: var(--rg-core);
   opacity: 0.1;
+  pointer-events: none;
+}
+.research-graph .rg-node.rg-muted {
+  opacity: 0.22;
+}
+.research-graph .rg-edge.rg-muted {
+  opacity: 0.06;
 }
 .research-graph .rg-label {
   fill: var(--rg-text);
@@ -153,33 +86,26 @@
   stroke-width: 3px;
   stroke-linejoin: round;
 }
-.research-graph .rg-node.rg-selected .rg-mark {
+.research-graph .rg-node.rg-major .rg-label,
+.research-graph .rg-node.rg-selected .rg-label {
+  font-weight: 600;
+}
+.research-graph .rg-node.rg-selected .rg-mark,
+.research-graph .rg-node:focus-visible .rg-mark {
   stroke: var(--rg-text);
   stroke-width: 1.5;
   vector-effect: non-scaling-stroke;
 }
-.research-graph .rg-node.rg-selected .rg-label {
-  font-weight: 600;
-}
-.research-graph .rg-help {
-  font-size: 0.78rem;
-  margin: 0.5rem 0 0.75rem;
-}
-.research-graph .rg-browse-label {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-.research-graph .rg-browse-label select {
-  flex: 1 1 250px;
-  max-width: 100%;
+.research-graph .rg-node:focus-visible {
+  outline: none;
 }
 .research-graph .rg-detail {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--rg-line);
+}
+.research-graph .rg-detail[hidden] {
+  display: none;
 }
 .research-graph .rg-detail-kind {
   font-size: 0.8rem;
@@ -205,52 +131,28 @@
   margin-bottom: 0.6rem;
 }
 .research-graph .rg-neighbors button {
+  font: inherit;
   font-size: 0.8rem;
-  padding: 0.15rem 0.45rem;
-}
-.research-graph .rg-empty {
-  color: var(--rg-muted);
-  margin-top: 1rem;
-}
-.research-graph .rg-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-.research-graph:fullscreen {
-  overflow: auto;
+  color: var(--rg-text);
   background: var(--rg-background);
-  padding: 1.5rem;
+  border: 1px solid var(--rg-line);
+  border-radius: 4px;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
 }
-.research-graph:fullscreen .rg-stage {
-  height: 65vh;
+.research-graph .rg-neighbors button:hover {
+  color: var(--rg-theme);
+  border-color: var(--rg-theme);
+}
+.research-graph .rg-neighbors button:focus-visible {
+  outline: 2px solid var(--rg-theme);
+  outline-offset: 2px;
 }
 @media (max-width: 600px) {
   .research-graph .rg-stage {
-    height: 500px;
+    height: 610px;
   }
-  .research-graph .rg-controls > label {
-    flex: 1 1 100%;
-  }
-  .research-graph .rg-controls select {
-    width: 100%;
-  }
-  .research-graph .rg-stats {
-    width: 100%;
-    margin-left: 0;
-  }
-  .research-graph .rg-view-controls {
-    width: 100%;
-  }
-  .research-graph input,
-  .research-graph select,
-  .research-graph button {
+  .research-graph .rg-neighbors button {
     min-height: 40px;
   }
 }
