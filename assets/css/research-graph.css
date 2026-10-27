@@ -2,11 +2,15 @@
 .research-graph {
   clear: both;
   margin: 1.8rem 0 2rem;
-  --rg-core: #536f8b;
-  --rg-theme: #668b9e;
-  --rg-paper: #af815a;
-  --rg-project: #659685;
-  --rg-concept: #91a0aa;
+  --rg-color-overview: #3e5b79;
+  --rg-color-memory: #477da6;
+  --rg-color-multimodal: #8c71ae;
+  --rg-color-safety: #b17381;
+  --rg-color-evidence: #509c8b;
+  --rg-color-finance: #b98f55;
+  --rg-color-uav: #518fa6;
+  --rg-color-systems: #747c9e;
+  --rg-color-agriculture: #829d65;
   --rg-text: var(--global-text-color, #333);
   --rg-background: var(--global-bg-color, #fff);
   --rg-line: #98a8b4;
@@ -16,6 +20,9 @@
   width: 100%;
   height: 580px;
   overflow: hidden;
+}
+.research-graph > h2 {
+  margin-bottom: 0.25rem;
 }
 .research-graph .rg-canvas {
   display: block;
@@ -30,7 +37,7 @@
 }
 .research-graph .rg-edge {
   fill: none;
-  stroke: var(--rg-line);
+  stroke: var(--rg-edge-color, var(--rg-line));
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }

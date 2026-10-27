@@ -15,12 +15,12 @@
   };
   const defs = make("defs");
   svg.append(defs);
-  ["core", "theme", "paper", "project", "concept"].forEach((kind) => {
-    const gradient = make("radialGradient", { id: `rg-sphere-${kind}-v3`, cx: "32%", cy: "26%", r: "78%" });
+  ["overview", ...data.groups.map((group) => group.id)].forEach((group) => {
+    const gradient = make("radialGradient", { id: `rg-sphere-${group}-v4`, cx: "32%", cy: "26%", r: "78%" });
     gradient.append(
-      make("stop", { offset: "0%", style: `stop-color:color-mix(in srgb,var(--rg-${kind}) 68%,white)` }),
-      make("stop", { offset: "72%", style: `stop-color:var(--rg-${kind})` }),
-      make("stop", { offset: "100%", style: `stop-color:color-mix(in srgb,var(--rg-${kind}) 88%,black)` })
+      make("stop", { offset: "0%", style: `stop-color:color-mix(in srgb,var(--rg-color-${group}) 68%,white)` }),
+      make("stop", { offset: "72%", style: `stop-color:var(--rg-color-${group})` }),
+      make("stop", { offset: "100%", style: `stop-color:color-mix(in srgb,var(--rg-color-${group}) 88%,black)` })
     );
     defs.append(gradient);
   });
@@ -35,6 +35,8 @@
     near.get(e.source).add(e.target);
     near.get(e.target).add(e.source);
     e.el = make("line", { class: "rg-edge" });
+    const colorGroup = e.a.group === e.b.group ? e.a.group : e.a.kind === "core" ? e.b.group : null;
+    if (colorGroup) e.el.style.setProperty("--rg-edge-color", `color-mix(in srgb,var(--rg-color-${colorGroup}) 44%,var(--rg-line))`);
     edgesLayer.append(e.el);
   });
   let width = 1,
@@ -65,23 +67,19 @@
   const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
   let reduced = motionPreference.matches;
   const fixed = (n) => n.kind === "core" || n.kind === "theme";
-  const radius = (n) =>
-    n.kind === "core"
-      ? 8.5
-      : n.kind === "theme"
-        ? n.level === 1
-          ? 6.3
-          : 5.3
-        : n.kind === "paper"
-          ? 5
-          : n.kind === "project"
-            ? 3.8
-            : 2.6 + Math.min(1, near.get(n.id).size * 0.13);
+  const radius = (n) => (n.kind === "core" ? 8.5 : n.kind === "theme" ? (n.level === 1 ? 6.3 : 5.3) : 2.6 + Math.min(1, near.get(n.id).size * 0.13));
 
   nodes.forEach((n) => {
-    const el = make("g", { class: fixed(n) ? "rg-node rg-major" : "rg-node", "data-node-id": n.id, role: "img", "aria-label": n.title });
+    const el = make("g", {
+      class: fixed(n) ? "rg-node rg-major" : "rg-node",
+      "data-node-id": n.id,
+      "data-group": n.group,
+      "data-kind": n.kind,
+      role: "img",
+      "aria-label": n.title,
+    });
     const hit = make("circle", { class: "rg-hit" }),
-      mark = make("circle", { class: "rg-mark", fill: `url(#rg-sphere-${n.kind}-v3)` }),
+      mark = make("circle", { class: "rg-mark", fill: `url(#rg-sphere-${n.group}-v4)` }),
       label = make("text", { class: "rg-label" }, n.label);
     el.append(make("title", {}, n.title), hit, mark, label);
     nodesLayer.append(el);
@@ -243,27 +241,14 @@
       nodesLayer.dataset.order = key;
     }
     const boxes = [];
-    const priority = (n) =>
-      n.id === active
-        ? -10
-        : n.kind === "core"
-          ? 0
-          : n.kind === "theme"
-            ? 1
-            : n.kind === "paper"
-              ? 2
-              : near.get(n.id).size >= 4
-                ? 3
-                : n.kind === "project"
-                  ? 4
-                  : 5;
+    const priority = (n) => (n.id === active ? -10 : n.kind === "core" ? 0 : n.kind === "theme" ? 1 : near.get(n.id).size >= 4 ? 2 : 3);
     [...nodes]
       .sort((a, b) => priority(a) - priority(b) || b.depth - a.depth)
       .forEach((n) => {
         n.label.style.display = "none";
         if (active && n.id !== active && !adjacent.has(n.id)) return;
         if (!active && n.kind === "concept" && near.get(n.id).size < 3 && zoom < 1.18) return;
-        const font = n.kind === "core" ? 13.5 : n.kind === "theme" ? 12.2 : n.kind === "paper" ? 11.8 : 11.2;
+        const font = n.kind === "core" ? 13.5 : n.kind === "theme" ? 12.2 : 11.2;
         const w = [...n.label.textContent].reduce((sum, c) => sum + (/[^\x00-\x7F]/.test(c) ? font : font * 0.6), 0);
         if (n.sx < -w || n.sx > width + w || n.sy < -20 || n.sy > height + 20) return;
         const candidates = [

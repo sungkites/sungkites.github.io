@@ -1,6 +1,6 @@
 {
   "title": "Research Knowledge Graph",
-  "description": "精选研究方向、代表论文与核心概念的空间知识图谱。",
+  "description": "研究方向与知识概念构成的空间关联图谱。",
   "updated": "2026-10-27",
   "groups": [
     {
@@ -460,9 +460,9 @@
       "id": "systems-16",
       "kind": "concept",
       "group": "systems",
-      "label": "AdaBoost",
-      "title": "AdaBoost",
-      "summary": "组合多个弱学习器形成集成分类器的方法。",
+      "label": "集成学习",
+      "title": "集成学习",
+      "summary": "组合多个学习器的预测形成整体模型，AdaBoost是其中一种方法。",
       "basis": "概念说明与主题关系；不代表已发表成果",
       "level": 4
     },
@@ -507,92 +507,134 @@
       "level": 4
     },
     {
-      "id": "paper-tem",
-      "kind": "paper",
+      "id": "memory-4",
+      "kind": "concept",
       "group": "memory",
-      "label": "TEM",
-      "title": "TEM: Temporal State Tracking Memory for Large Language Model Agents",
-      "summary": "跟踪对话中的事实版本及其时序状态，为长期智能体问答组织来源明确的记忆证据。",
-      "status": "arXiv 预印本 · 2026",
-      "links": [
-        {
-          "label": "论文原文",
-          "url": "https://arxiv.org/abs/2610.21900"
-        },
-        {
-          "label": "DOI",
-          "url": "https://doi.org/10.48550/arXiv.2610.21900"
-        }
-      ],
-      "level": 2
+      "label": "情景记忆",
+      "title": "情景记忆",
+      "summary": "将交互中的事件及其上下文组织为可回忆的记录。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
     },
     {
-      "id": "paper-hfcma",
-      "kind": "paper",
+      "id": "memory-7",
+      "kind": "concept",
+      "group": "memory",
+      "label": "事实抽取",
+      "title": "事实抽取",
+      "summary": "从自然语言中识别实体、关系与事实陈述。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "memory-16",
+      "kind": "concept",
+      "group": "memory",
+      "label": "证据预算",
+      "title": "证据预算",
+      "summary": "限制提供给回答模型的证据长度或处理成本。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "multimodal-9",
+      "kind": "concept",
       "group": "multimodal",
-      "label": "HFCMA",
-      "title": "Hierarchical Fine-Grained Cross-Modal Alignment via Dynamic Granularity Discovery and Optimal Transport",
-      "summary": "结合动态粒度发现与最优传输，研究视觉区域与文本短语之间的细粒度语义对齐。",
-      "status": "arXiv 预印本 · 2026",
-      "links": [
-        {
-          "label": "论文原文",
-          "url": "https://arxiv.org/abs/2610.30912"
-        },
-        {
-          "label": "DOI",
-          "url": "https://doi.org/10.48550/arXiv.2610.30912"
-        }
-      ],
-      "level": 2
+      "label": "对比学习",
+      "title": "对比学习",
+      "summary": "通过正负样本关系学习可比较的表示。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
     },
     {
-      "id": "paper-adaboost",
-      "kind": "paper",
+      "id": "multimodal-14",
+      "kind": "concept",
+      "group": "multimodal",
+      "label": "视觉Transformer",
+      "title": "视觉Transformer",
+      "summary": "把图像划分为表示单元并通过Transformer建模。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "safety-10",
+      "kind": "concept",
+      "group": "safety",
+      "label": "主动取证",
+      "title": "主动取证",
+      "summary": "在信息不足时，有针对性地请求能够支持判断的额外证据。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "safety-13",
+      "kind": "concept",
+      "group": "safety",
+      "label": "不确定性",
+      "title": "不确定性",
+      "summary": "描述当前证据不足或判断不稳定的程度。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "evidence-3",
+      "kind": "concept",
+      "group": "evidence",
+      "label": "实体对齐",
+      "title": "实体对齐",
+      "summary": "识别不同来源中指向同一现实对象的记录。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "evidence-9",
+      "kind": "concept",
+      "group": "evidence",
+      "label": "三值判断",
+      "title": "三值判断",
+      "summary": "除支持和反驳外，为证据不足保留未知状态。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "finance-9",
+      "kind": "concept",
+      "group": "finance",
+      "label": "时序预测",
+      "title": "时序预测",
+      "summary": "基于历史序列和相关信息预测后续变化。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "uav-9",
+      "kind": "concept",
+      "group": "uav",
+      "label": "对象记忆",
+      "title": "对象记忆",
+      "summary": "记录已观测对象的位置、属性、时间与来源。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
+    },
+    {
+      "id": "systems-17",
+      "kind": "concept",
       "group": "systems",
-      "label": "AdaBoost论文",
-      "title": "AdaBoost Algorithm Based on Fitted Weak Classifier",
-      "summary": "研究基于拟合型弱分类器的AdaBoost算法。",
-      "status": "Telecommunications Science · 2019 · 35(11):27–35",
-      "links": [
-        {
-          "label": "期刊原文",
-          "url": "https://www.telecomsci.com/zh/article/doi/10.11959/j.issn.1000-0801.2019219/"
-        }
-      ],
-      "level": 2
+      "label": "弱分类器",
+      "title": "弱分类器",
+      "summary": "单个预测能力有限、可被集成利用的分类模型。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
     },
     {
-      "id": "code-tem",
-      "kind": "project",
-      "group": "memory",
-      "label": "TEM代码",
-      "title": "TEM · 开源项目",
-      "summary": "TEM论文的公开代码仓库。",
-      "status": "公开代码",
-      "links": [
-        {
-          "label": "GitHub",
-          "url": "https://github.com/sungkites/TEM"
-        }
-      ],
-      "level": 3
-    },
-    {
-      "id": "code-hfcma",
-      "kind": "project",
-      "group": "multimodal",
-      "label": "HFCMA代码",
-      "title": "HFCMA · 开源项目",
-      "summary": "HFCMA论文的公开代码仓库。",
-      "status": "公开代码",
-      "links": [
-        {
-          "label": "GitHub",
-          "url": "https://github.com/sungkites/HFCMA"
-        }
-      ],
-      "level": 3
+      "id": "agriculture-3",
+      "kind": "concept",
+      "group": "agriculture",
+      "label": "多传感器融合",
+      "title": "多传感器融合",
+      "summary": "综合不同传感器的信息改善现场观察。",
+      "basis": "概念说明与主题关系；不代表已发表成果",
+      "level": 4
     }
   ],
   "edges": [
@@ -605,6 +647,18 @@
     {
       "source": "memory",
       "target": "memory-3",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "memory",
+      "target": "memory-4",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "memory",
+      "target": "memory-7",
       "relation": "相关概念",
       "tier": "detail"
     },
@@ -639,6 +693,12 @@
       "tier": "detail"
     },
     {
+      "source": "memory",
+      "target": "memory-16",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
       "source": "multimodal",
       "target": "multimodal-1",
       "relation": "相关概念",
@@ -664,7 +724,19 @@
     },
     {
       "source": "multimodal",
+      "target": "multimodal-9",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "multimodal",
       "target": "multimodal-10",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "multimodal",
+      "target": "multimodal-14",
       "relation": "相关概念",
       "tier": "detail"
     },
@@ -700,7 +772,19 @@
     },
     {
       "source": "safety",
+      "target": "safety-10",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "safety",
       "target": "safety-11",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "safety",
+      "target": "safety-13",
       "relation": "相关概念",
       "tier": "detail"
     },
@@ -718,6 +802,12 @@
     },
     {
       "source": "evidence",
+      "target": "evidence-3",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "evidence",
       "target": "evidence-6",
       "relation": "相关概念",
       "tier": "detail"
@@ -725,6 +815,12 @@
     {
       "source": "evidence",
       "target": "evidence-8",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "evidence",
+      "target": "evidence-9",
       "relation": "相关概念",
       "tier": "detail"
     },
@@ -743,6 +839,12 @@
     {
       "source": "finance",
       "target": "finance-3",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "finance",
+      "target": "finance-9",
       "relation": "相关概念",
       "tier": "detail"
     },
@@ -784,6 +886,12 @@
     },
     {
       "source": "uav",
+      "target": "uav-9",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "uav",
       "target": "uav-14",
       "relation": "相关概念",
       "tier": "detail"
@@ -807,8 +915,20 @@
       "tier": "detail"
     },
     {
+      "source": "systems",
+      "target": "systems-17",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
       "source": "agriculture",
       "target": "agriculture-1",
+      "relation": "相关概念",
+      "tier": "detail"
+    },
+    {
+      "source": "agriculture",
+      "target": "agriculture-3",
       "relation": "相关概念",
       "tier": "detail"
     },
@@ -825,90 +945,6 @@
       "tier": "detail"
     },
     {
-      "source": "memory",
-      "target": "paper-tem",
-      "relation": "关联成果",
-      "tier": "detail"
-    },
-    {
-      "source": "multimodal",
-      "target": "paper-hfcma",
-      "relation": "关联成果",
-      "tier": "detail"
-    },
-    {
-      "source": "systems",
-      "target": "paper-adaboost",
-      "relation": "关联成果",
-      "tier": "detail"
-    },
-    {
-      "source": "memory",
-      "target": "code-tem",
-      "relation": "关联成果",
-      "tier": "detail"
-    },
-    {
-      "source": "multimodal",
-      "target": "code-hfcma",
-      "relation": "关联成果",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-tem",
-      "target": "memory-8",
-      "relation": "研究",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-tem",
-      "target": "memory-9",
-      "relation": "组织记忆",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-tem",
-      "target": "code-tem",
-      "relation": "公开代码",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-hfcma",
-      "target": "multimodal-2",
-      "relation": "研究",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-hfcma",
-      "target": "multimodal-3",
-      "relation": "采用",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-hfcma",
-      "target": "multimodal-4",
-      "relation": "采用",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-hfcma",
-      "target": "multimodal-1",
-      "relation": "应用任务",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-hfcma",
-      "target": "code-hfcma",
-      "relation": "公开代码",
-      "tier": "detail"
-    },
-    {
-      "source": "paper-adaboost",
-      "target": "systems-16",
-      "relation": "研究",
-      "tier": "detail"
-    },
-    {
       "source": "memory-14",
       "target": "evidence-1",
       "relation": "关联证据",
@@ -921,6 +957,24 @@
       "tier": "detail"
     },
     {
+      "source": "memory-7",
+      "target": "memory-9",
+      "relation": "形成",
+      "tier": "detail"
+    },
+    {
+      "source": "memory-13",
+      "target": "memory-16",
+      "relation": "约束",
+      "tier": "detail"
+    },
+    {
+      "source": "memory-3",
+      "target": "uav-9",
+      "relation": "相关主题",
+      "tier": "bridge"
+    },
+    {
       "source": "multimodal-2",
       "target": "multimodal-4",
       "relation": "可采用",
@@ -930,6 +984,24 @@
       "source": "safety-3",
       "target": "safety-4",
       "relation": "需要",
+      "tier": "detail"
+    },
+    {
+      "source": "safety-10",
+      "target": "evidence-6",
+      "relation": "支持判断",
+      "tier": "bridge"
+    },
+    {
+      "source": "evidence-2",
+      "target": "evidence-3",
+      "relation": "关联方法",
+      "tier": "detail"
+    },
+    {
+      "source": "evidence-8",
+      "target": "evidence-9",
+      "relation": "可使用",
       "tier": "detail"
     },
     {
@@ -1041,6 +1113,12 @@
       "tier": "bridge"
     },
     {
+      "source": "memory-7",
+      "target": "evidence-8",
+      "relation": "事实与证据",
+      "tier": "bridge"
+    },
+    {
       "source": "memory-9",
       "target": "evidence-1",
       "relation": "来源与历史",
@@ -1050,6 +1128,24 @@
       "source": "multimodal-17",
       "target": "finance-3",
       "relation": "证据判断",
+      "tier": "bridge"
+    },
+    {
+      "source": "multimodal-14",
+      "target": "finance-1",
+      "relation": "视觉表示",
+      "tier": "bridge"
+    },
+    {
+      "source": "evidence-2",
+      "target": "agriculture-3",
+      "relation": "多源信息",
+      "tier": "bridge"
+    },
+    {
+      "source": "evidence-1",
+      "target": "uav-9",
+      "relation": "来源记录",
       "tier": "bridge"
     },
     {
@@ -1074,6 +1170,36 @@
       "source": "evidence-14",
       "target": "evidence-2",
       "relation": "关联数据组织",
+      "tier": "bridge"
+    },
+    {
+      "source": "systems-16",
+      "target": "systems-17",
+      "relation": "组合学习器",
+      "tier": "bridge"
+    },
+    {
+      "source": "memory-4",
+      "target": "uav-9",
+      "relation": "关联记忆组织",
+      "tier": "bridge"
+    },
+    {
+      "source": "memory-16",
+      "target": "safety-10",
+      "relation": "资源与证据",
+      "tier": "bridge"
+    },
+    {
+      "source": "evidence-3",
+      "target": "evidence-14",
+      "relation": "关联知识组织",
+      "tier": "bridge"
+    },
+    {
+      "source": "multimodal-9",
+      "target": "multimodal-1",
+      "relation": "关联表示学习",
       "tier": "bridge"
     }
   ]
