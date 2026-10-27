@@ -32,19 +32,13 @@ I received my master's degree in Electronic and Communication Engineering from N
 
 My current interests include artificial intelligence, machine learning, software engineering, and applied research. 
 
-<section id="research-knowledge-graph" class="research-graph" aria-labelledby="research-graph-heading">
-  <h2 id="research-graph-heading">Research Knowledge Graph</h2>
-  <div class="rg-stage"><svg class="rg-canvas" role="group" tabindex="0" aria-label="研究知识图谱：中央为研究主线，外围为应用方向和知识概念。点击节点查看详情，拖动平移，双击还原视图。"><title>研究知识图谱</title></svg></div>
-  <div class="rg-detail" aria-live="polite" hidden>
-    <p class="rg-detail-kind"></p><h3 class="rg-detail-title"></h3>
-    <p class="rg-detail-description"></p>
-    <div class="rg-detail-links"></div><div class="rg-neighbors"></div>
-  </div>
-  <noscript><p>启用 JavaScript 后可浏览交互图谱。公开论文仍可在下方 Selected Publications 中查看。</p></noscript>
+<section id="research-knowledge-graph" class="research-graph" aria-label="研究知识图谱">
+  <div class="rg-stage"><svg class="rg-canvas" role="group" tabindex="0" aria-label="空间知识图谱。拖动平移，滚轮或双指缩放，Shift拖动旋转。按空格暂停动态，Home还原视图。"><title>研究知识图谱</title></svg></div>
+  <noscript><p>启用 JavaScript 后可浏览交互图谱。</p></noscript>
   <script type="application/json" id="research-graph-data">{{ site.data.research_graph | jsonify }}</script>
 </section>
-<link rel="stylesheet" href="{{ '/assets/css/research-graph.css' | relative_url }}?v=2">
-<script src="{{ '/assets/js/research-graph.js' | relative_url }}?v=2" defer></script>
+<link rel="stylesheet" href="{{ '/assets/css/research-graph.css' | relative_url }}?v=3">
+<script src="{{ '/assets/js/research-graph.js' | relative_url }}?v=3" defer></script>
 
 
 ## Research

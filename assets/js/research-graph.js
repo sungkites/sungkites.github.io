@@ -1,506 +1,486 @@
-/* Personal research graph: no toolbar, dependency or global style changes. */
+/* A small 3D knowledge network projected into SVG, with no external runtime. */
 (() => {
   "use strict";
   const root = document.getElementById("research-knowledge-graph");
   if (!root) return;
   const data = JSON.parse(root.querySelector("#research-graph-data").textContent);
-  const stage = root.querySelector(".rg-stage");
-  const svg = root.querySelector(".rg-canvas");
-  const detail = root.querySelector(".rg-detail");
+  const stage = root.querySelector(".rg-stage"),
+    svg = root.querySelector(".rg-canvas");
   const ns = "http://www.w3.org/2000/svg";
-  const names = {
-    core: "研究主线",
-    theme: "研究方向",
-    paper: "公开论文",
-    project: "项目 / 资料主题",
-    concept: "知识概念",
-  };
   const make = (tag, attrs = {}, text = "") => {
     const el = document.createElementNS(ns, tag);
-    Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+    Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
     if (text) el.textContent = text;
     return el;
   };
-  const camera = make("g");
-  const edgeLayer = make("g");
-  const nodeLayer = make("g");
-  camera.append(edgeLayer, nodeLayer);
-  svg.append(camera);
-  const nodes = data.nodes.map((node) => ({ ...node }));
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  const adjacency = new Map(nodes.map((node) => [node.id, []]));
-  const edges = data.edges.map((edge) => ({
-    ...edge,
-    a: byId.get(edge.source),
-    b: byId.get(edge.target),
-  }));
-  edges.forEach((edge) => {
-    adjacency.get(edge.source).push({ node: edge.b, relation: edge.relation });
-    adjacency.get(edge.target).push({ node: edge.a, relation: edge.relation });
+  const defs = make("defs");
+  svg.append(defs);
+  ["core", "theme", "paper", "project", "concept"].forEach((kind) => {
+    const gradient = make("radialGradient", { id: `rg-sphere-${kind}-v3`, cx: "32%", cy: "26%", r: "78%" });
+    gradient.append(
+      make("stop", { offset: "0%", style: `stop-color:color-mix(in srgb,var(--rg-${kind}) 68%,white)` }),
+      make("stop", { offset: "72%", style: `stop-color:var(--rg-${kind})` }),
+      make("stop", { offset: "100%", style: `stop-color:color-mix(in srgb,var(--rg-${kind}) 88%,black)` })
+    );
+    defs.append(gradient);
+  });
+  const edgesLayer = make("g"),
+    nodesLayer = make("g");
+  svg.append(edgesLayer, nodesLayer);
+  const nodes = data.nodes.map((n, i) => ({ ...n, index: i, vx: 0, vy: 0, vz: 0 })),
+    byId = new Map(nodes.map((n) => [n.id, n]));
+  const near = new Map(nodes.map((n) => [n.id, new Set()]));
+  const edges = data.edges.map((e) => ({ ...e, a: byId.get(e.source), b: byId.get(e.target) }));
+  edges.forEach((e) => {
+    near.get(e.source).add(e.target);
+    near.get(e.target).add(e.source);
+    e.el = make("line", { class: "rg-edge" });
+    edgesLayer.append(e.el);
   });
   let width = 1,
     height = 1,
-    scale = 1,
-    tx = 0,
-    ty = 0,
-    fitScale = 1,
-    selected = null,
-    hovered = null,
-    frame = null,
+    baseScale = 1,
+    zoom = 1,
+    panX = 0,
+    panY = 0,
     narrow = null;
-  let drag = null,
+  let visible = false,
+    hovered = null,
+    held = null,
+    drag = null,
     pinch = null,
-    moved = false;
+    frame = null,
+    paused = false,
+    moved = false,
+    energy = 1;
+  let yaw = 0.19,
+    pitch = -0.09,
+    aimX = 0,
+    aimY = 0,
+    viewX = 0,
+    viewY = 0,
+    motionTime = 0,
+    lastFrame = 0;
   const pointers = new Map();
-  const size = (node) =>
-    node.kind === "core"
-      ? 13
-      : node.kind === "theme"
-        ? node.level === 1
-          ? 8
-          : 6.5
-        : node.kind === "paper"
-          ? 5.5
-          : node.kind === "project"
-            ? 4.3
-            : 2.8;
-  const fixed = (node) => node.kind === "core" || node.kind === "theme";
+  const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+  let reduced = motionPreference.matches;
+  const fixed = (n) => n.kind === "core" || n.kind === "theme";
+  const radius = (n) =>
+    n.kind === "core"
+      ? 8.5
+      : n.kind === "theme"
+        ? n.level === 1
+          ? 6.3
+          : 5.3
+        : n.kind === "paper"
+          ? 5
+          : n.kind === "project"
+            ? 3.8
+            : 2.6 + Math.min(1, near.get(n.id).size * 0.13);
 
-  function layout(isNarrow) {
-    const centers = isNarrow
-      ? {
-          memory: [250, 230],
-          multimodal: [720, 230],
-          safety: [250, 620],
-          evidence: [720, 620],
-          finance: [720, 1010],
-          uav: [250, 1010],
-          systems: [250, 1400],
-          agriculture: [720, 1400],
-          overview: [485, 425],
-        }
-      : {
-          memory: [440, 245],
-          multimodal: [990, 245],
-          safety: [440, 690],
-          evidence: [990, 690],
-          finance: [1260, 55],
-          uav: [120, 415],
-          systems: [185, 975],
-          agriculture: [1300, 975],
-          overview: [720, 470],
-        };
-    data.groups.forEach((group) => {
-      const members = nodes.filter((node) => node.group === group.id && !fixed(node));
-      const center = centers[group.id];
-      members
-        .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
-        .forEach((node, index) => {
-          const angle = index * 2.3999632297 + 0.3;
-          const radius = node.kind === "paper" || node.kind === "project" ? 66 + index * 4 : 55 + Math.sqrt(index + 1) * 23;
-          node.x = center[0] + Math.cos(angle) * radius;
-          node.y = center[1] + Math.sin(angle) * radius * 0.82;
-        });
-    });
-    nodes.filter(fixed).forEach((node) => {
-      node.x = centers[node.group][0];
-      node.y = centers[node.group][1];
-    });
-    // Concepts shared by directions sit between their related branches.
-    nodes
-      .filter((node) => node.kind === "concept")
-      .forEach((node) => {
-        const external = adjacency.get(node.id).filter((item) => item.node.group !== node.group && item.node.kind !== "core");
-        if (external.length) {
-          const x = external.reduce((sum, item) => sum + centers[item.node.group][0], 0) / external.length;
-          const y = external.reduce((sum, item) => sum + centers[item.node.group][1], 0) / external.length;
-          node.x = node.x * 0.78 + x * 0.22;
-          node.y = node.y * 0.78 + y * 0.22;
-        }
-      });
-    // Deterministic spacing, without a continuously moving force simulation.
-    for (let iteration = 0; iteration < 70; iteration++) {
-      for (let i = 0; i < nodes.length; i++)
-        for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i],
-            b = nodes[j];
-          let dx = b.x - a.x,
-            dy = b.y - a.y,
-            distance = Math.hypot(dx, dy);
-          const gap = a.kind === "core" || b.kind === "core" ? 75 : fixed(a) || fixed(b) ? 42 : 25;
-          if (distance >= gap || (fixed(a) && fixed(b))) continue;
-          if (distance < 0.01) {
-            dx = 0.1;
-            dy = 0.1;
-            distance = Math.hypot(dx, dy);
-          }
-          const push = (gap - distance) * 0.52;
-          const ux = dx / distance,
-            uy = dy / distance;
-          if (!fixed(a)) {
-            a.x -= ux * push;
-            a.y -= uy * push;
-          }
-          if (!fixed(b)) {
-            b.x += ux * push;
-            b.y += uy * push;
-          }
-        }
-    }
-  }
-  edges.forEach((edge) => {
-    const classes = {
-      primary: "rg-edge rg-primary",
-      secondary: "rg-edge rg-secondary",
-      bridge: "rg-edge rg-bridge",
-      detail: "rg-edge",
-    };
-    edge.element = make("path", { class: classes[edge.tier] || "rg-edge" });
-    edgeLayer.append(edge.element);
-  });
-  nodes.forEach((node) => {
-    const el = make("g", {
-      class: fixed(node) ? "rg-node rg-major" : "rg-node",
-      "data-node-id": node.id,
-      role: "button",
-      tabindex: node.kind === "core" ? "0" : "-1",
-      "aria-label": `${node.label}，${names[node.kind]}`,
-    });
-    const hit = make("circle", { class: "rg-hit" });
-    const mark = make(node.kind === "project" ? "rect" : node.kind === "paper" ? "polygon" : "circle", {
-      class: "rg-mark",
-      fill: `var(--rg-${node.kind})`,
-    });
-    const label = make("text", { class: "rg-label" }, node.label);
-    el.append(make("title", {}, `${node.label} · ${names[node.kind]}`));
-    if (node.kind === "core") {
-      node.halo = make("circle", { class: "rg-halo" });
-      el.append(node.halo);
-    }
-    el.append(hit, mark, label);
-    nodeLayer.append(el);
-    Object.assign(node, { element: el, mark, hit, labelElement: label });
+  nodes.forEach((n) => {
+    const el = make("g", { class: fixed(n) ? "rg-node rg-major" : "rg-node", "data-node-id": n.id, role: "img", "aria-label": n.title });
+    const hit = make("circle", { class: "rg-hit" }),
+      mark = make("circle", { class: "rg-mark", fill: `url(#rg-sphere-${n.kind}-v3)` }),
+      label = make("text", { class: "rg-label" }, n.label);
+    el.append(make("title", {}, n.title), hit, mark, label);
+    nodesLayer.append(el);
+    Object.assign(n, { el, hit, mark, label });
     el.addEventListener("pointerenter", () => {
-      hovered = node.id;
-      labels();
+      hovered = n.id;
+      requestRender();
     });
     el.addEventListener("pointerleave", () => {
       hovered = null;
-      labels();
-    });
-    el.addEventListener("focus", () => {
-      hovered = node.id;
-      labels();
-    });
-    el.addEventListener("blur", () => {
-      hovered = null;
-      labels();
+      requestRender();
     });
   });
-  function labels() {
-    const occupied = [];
-    const isNear = (node) => selected && adjacency.get(selected).some((item) => item.node.id === node.id);
-    const priority = (node) =>
-      node.id === selected || node.id === hovered
-        ? -20
-        : node.kind === "core"
-          ? -10
-          : node.kind === "theme"
-            ? node.level
-            : node.kind === "paper"
-              ? 3
-              : isNear(node)
-                ? 4
-                : node.kind === "project"
-                  ? 5
-                  : 10 - adjacency.get(node.id).length * 0.15;
-    [...nodes]
-      .sort((a, b) => priority(a) - priority(b))
-      .forEach((node) => {
-        const label = node.labelElement;
-        label.style.display = "none";
-        if (selected && !fixed(node) && node.id !== selected && node.id !== hovered && !isNear(node)) return;
-        const font = node.kind === "core" ? 15 : node.kind === "theme" ? (node.level === 1 ? 13 : 12) : 11.5;
-        const x = node.x * scale + tx,
-          y = node.y * scale + ty + size(node) + 16;
-        const w = [...node.label].reduce((sum, char) => sum + (/[^\x00-\x7F]/.test(char) ? font : font * 0.6), 0);
-        if (x < -w || x > width + w || y < 0 || y > height + 20) return;
-        const labelX = Math.max(w / 2 + 3, Math.min(width - w / 2 - 3, x));
-        const box = {
-          x: labelX - w / 2 - 3,
-          y: y - font - 2,
-          w: w + 6,
-          h: font + 7,
+
+  function layout(mobile) {
+    const centers = mobile
+      ? {
+          overview: [0, -20, 20],
+          memory: [-125, -215, 70],
+          multimodal: [125, -215, -35],
+          safety: [-130, -35, -45],
+          evidence: [130, -25, 80],
+          finance: [130, 155, -55],
+          uav: [-135, 150, 50],
+          systems: [-130, 340, -30],
+          agriculture: [130, 340, 30],
+        }
+      : {
+          overview: [0, 0, 20],
+          memory: [-175, -145, 80],
+          multimodal: [175, -135, -40],
+          safety: [-165, 100, -60],
+          evidence: [165, 100, 85],
+          finance: [345, -50, -85],
+          uav: [-355, -5, 10],
+          systems: [-185, 275, 70],
+          agriculture: [240, 270, -55],
         };
-        const overlap = occupied.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y);
-        if (overlap && node.id !== hovered && node.id !== selected) return;
-        label.style.display = "";
-        label.setAttribute("font-size", font / scale);
-        label.setAttribute("text-anchor", "middle");
-        label.setAttribute("x", (labelX - x) / scale);
-        label.setAttribute("y", (size(node) + 16) / scale);
-        occupied.push(box);
-      });
-  }
-  function draw() {
-    camera.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`);
-    nodes.forEach((node) => {
-      const r = size(node) / scale;
-      node.element.setAttribute("transform", `translate(${node.x},${node.y})`);
-      node.hit.setAttribute("r", Math.max(size(node) + 4, 10) / scale);
-      if (node.halo) node.halo.setAttribute("r", 25 / scale);
-      if (node.kind === "project")
-        Object.entries({
-          x: -r,
-          y: -r,
-          width: r * 2,
-          height: r * 2,
-          rx: r * 0.2,
-        }).forEach(([key, value]) => node.mark.setAttribute(key, value));
-      else if (node.kind === "paper") node.mark.setAttribute("points", `0,${-r * 1.3} ${r * 1.3},0 0,${r * 1.3} ${-r * 1.3},0`);
-      else node.mark.setAttribute("r", r);
+    nodes.filter(fixed).forEach((n) => {
+      [n.x, n.y, n.z] = centers[n.group];
     });
-    edges.forEach((edge) => {
-      const dx = edge.b.x - edge.a.x,
-        dy = edge.b.y - edge.a.y;
-      if (edge.tier === "primary" || edge.tier === "secondary") {
-        const bend = edge.tier === "primary" ? 0.055 : 0.025;
-        edge.element.setAttribute(
-          "d",
-          `M ${edge.a.x} ${edge.a.y} Q ${(edge.a.x + edge.b.x) / 2 - dy * bend} ${(edge.a.y + edge.b.y) / 2 + dx * bend} ${edge.b.x} ${edge.b.y}`
-        );
-      } else edge.element.setAttribute("d", `M ${edge.a.x} ${edge.a.y} L ${edge.b.x} ${edge.b.y}`);
+    data.groups.forEach((group) => {
+      const members = nodes.filter((n) => n.group === group.id && !fixed(n));
+      members
+        .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
+        .forEach((n, i) => {
+          const center = centers[group.id],
+            angle = i * 2.399963 + 0.5;
+          const distance = (mobile ? 42 : 48) + Math.sqrt(i + 1) * (mobile ? 18 : 21);
+          n.x = center[0] + Math.cos(angle) * distance;
+          n.y = center[1] + Math.sin(angle) * distance * 0.8;
+          n.z = center[2] + Math.sin(i * 1.7 + 0.8) * 40;
+        });
     });
-    labels();
+    nodes.forEach((n) => {
+      n.ax = n.x;
+      n.ay = n.y;
+      n.az = n.z;
+      n.vx = n.vy = n.vz = 0;
+    });
+    // A brief deterministic relaxation separates close nodes while preserving branches.
+    energy = 1;
+    for (let i = 0; i < 45; i++) physics();
+    if (reduced) {
+      for (let i = 0; i < 45; i++) physics();
+      energy = 0;
+    }
   }
-  function schedule() {
-    if (!frame)
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        draw();
-      });
+  function physics() {
+    if (energy < 0.002) return;
+    for (let i = 0; i < nodes.length; i++)
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i],
+          b = nodes[j];
+        let dx = b.x - a.x,
+          dy = b.y - a.y,
+          dz = (b.z - a.z) * 0.5;
+        const distance = Math.max(0.1, Math.hypot(dx, dy, dz)),
+          gap = fixed(a) || fixed(b) ? 47 : 31;
+        if (distance >= gap) continue;
+        const force = ((gap - distance) / distance) * 0.08 * energy;
+        if (!fixed(a) && a.id !== drag?.id) {
+          a.vx -= dx * force;
+          a.vy -= dy * force;
+          a.vz -= dz * force;
+        }
+        if (!fixed(b) && b.id !== drag?.id) {
+          b.vx += dx * force;
+          b.vy += dy * force;
+          b.vz += dz * force;
+        }
+      }
+    nodes.forEach((n) => {
+      if (fixed(n) || n.id === drag?.id) return;
+      n.vx = (n.vx + (n.ax - n.x) * 0.012 * energy) * 0.75;
+      n.vy = (n.vy + (n.ay - n.y) * 0.012 * energy) * 0.75;
+      n.vz = (n.vz + (n.az - n.z) * 0.012 * energy) * 0.75;
+      n.x += n.vx;
+      n.y += n.vy;
+      n.z += n.vz;
+    });
+    energy *= 0.972;
+  }
+  function project(n, angleY, angleX) {
+    const x = n.x * Math.cos(angleY) + n.z * Math.sin(angleY),
+      z = -n.x * Math.sin(angleY) + n.z * Math.cos(angleY);
+    const y = n.y * Math.cos(angleX) - z * Math.sin(angleX),
+      depth = n.y * Math.sin(angleX) + z * Math.cos(angleX);
+    const perspective = 1050 / (1050 - depth);
+    return { x: x * perspective, y: y * perspective, z: depth, p: perspective };
   }
   function fit() {
-    const x0 = Math.min(...nodes.map((n) => n.x)) - 75,
-      x1 = Math.max(...nodes.map((n) => n.x)) + 75;
-    const y0 = Math.min(...nodes.map((n) => n.y)) - 55,
-      y1 = Math.max(...nodes.map((n) => n.y)) + 70;
-    fitScale = Math.min((width - 12) / (x1 - x0), (height - 20) / (y1 - y0));
-    scale = fitScale;
-    tx = width / 2 - ((x0 + x1) / 2) * scale;
-    ty = height / 2 - ((y0 + y1) / 2) * scale;
-    draw();
+    const projected = nodes.map((n) => project(n, yaw, pitch));
+    const x0 = Math.min(...projected.map((n) => n.x)) - 65,
+      x1 = Math.max(...projected.map((n) => n.x)) + 65;
+    const y0 = Math.min(...projected.map((n) => n.y)) - 55,
+      y1 = Math.max(...projected.map((n) => n.y)) + 60;
+    baseScale = Math.min((width - 12) / (x1 - x0), (height - 16) / (y1 - y0));
+    svg.dataset.originX = String((x0 + x1) / 2);
+    svg.dataset.originY = String((y0 + y1) / 2);
+    zoom = 1;
+    panX = panY = 0;
   }
-  function zoom(factor, x = width / 2, y = height / 2) {
-    const next = Math.max(fitScale * 0.7, Math.min(scale * factor, fitScale * 8));
-    tx = x - ((x - tx) * next) / scale;
-    ty = y - ((y - ty) * next) / scale;
-    scale = next;
-    draw();
-  }
-  function paint() {
-    const near = selected ? new Set([selected, ...adjacency.get(selected).map((item) => item.node.id)]) : null;
-    nodes.forEach((node) => {
-      node.element.classList.toggle("rg-selected", node.id === selected);
-      node.element.classList.toggle("rg-muted", Boolean(near && !near.has(node.id) && !fixed(node)));
+  function render() {
+    const active = hovered || held,
+      adjacent = active ? near.get(active) : null;
+    const angleY = yaw + (reduced ? 0 : Math.sin(motionTime * 0.16) * 0.065) + viewX;
+    const angleX = pitch + (reduced ? 0 : Math.sin(motionTime * 0.13) * 0.025) + viewY;
+    const originX = Number(svg.dataset.originX || 0),
+      originY = Number(svg.dataset.originY || 0);
+    nodes.forEach((n) => {
+      const point = project(n, angleY, angleX);
+      n.depth = point.z;
+      n.perspective = point.p;
+      n.sx = width / 2 + panX + (point.x - originX) * baseScale * zoom;
+      n.sy = height / 2 + panY + (point.y - originY) * baseScale * zoom;
+      n.screenR = radius(n) * Math.max(0.8, Math.min(1.2, point.p)) * Math.pow(zoom, 0.22);
+      n.el.setAttribute("transform", `translate(${n.sx},${n.sy})`);
+      n.mark.setAttribute("r", n.screenR);
+      n.hit.setAttribute("r", Math.max(10, n.screenR + 4));
+      const opacity = active && n.id !== active && !adjacent.has(n.id) ? 0.18 : Math.max(0.58, Math.min(1, 0.8 + point.z / 800));
+      n.el.setAttribute("opacity", opacity);
+      n.mark.setAttribute("stroke", n.id === active ? "var(--rg-text)" : "none");
+      n.mark.setAttribute("stroke-width", n.id === active ? 1 : 0);
     });
-    edges.forEach((edge) => {
-      const connected = selected && (edge.source === selected || edge.target === selected);
-      edge.element.classList.toggle("rg-connected", Boolean(connected));
-      edge.element.classList.toggle("rg-muted", Boolean(selected && !connected));
+    edges.forEach((e) => {
+      Object.entries({ x1: e.a.sx, y1: e.a.sy, x2: e.b.sx, y2: e.b.sy }).forEach(([key, value]) => e.el.setAttribute(key, value));
+      const isNear = active && (e.source === active || e.target === active),
+        main = e.tier === "primary" || e.tier === "secondary";
+      const depth = (e.a.depth + e.b.depth) / 2;
+      e.el.setAttribute("opacity", active ? (isNear ? 0.66 : 0.035) : Math.max(0.1, Math.min(0.42, (main ? 0.32 : 0.18) + depth / 1800)));
+      e.el.setAttribute("stroke-width", isNear ? 1.15 : main ? 0.95 : 0.55);
     });
-    labels();
-  }
-  function select(id) {
-    const node = byId.get(id);
-    if (!node) return;
-    selected = id;
-    paint();
-    detail.hidden = false;
-    root.querySelector(".rg-detail-kind").textContent = names[node.kind] + (node.status ? ` · ${node.status}` : "");
-    root.querySelector(".rg-detail-title").textContent = node.title;
-    root.querySelector(".rg-detail-description").textContent = node.summary;
-    const links = root.querySelector(".rg-detail-links");
-    links.replaceChildren();
-    (node.links || []).forEach((link) => {
-      const a = document.createElement("a");
-      a.textContent = link.label + " ↗";
-      a.href = link.url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      links.append(a);
-    });
-    const neighbors = root.querySelector(".rg-neighbors");
-    neighbors.replaceChildren();
-    const seen = new Set();
-    adjacency
-      .get(id)
-      .sort((a, b) => a.node.level - b.node.level)
-      .forEach((item) => {
-        if (seen.has(item.node.id)) return;
-        seen.add(item.node.id);
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = item.node.label;
-        button.title = item.relation;
-        button.addEventListener("click", () => {
-          select(item.node.id);
-          focus(item.node.id);
-        });
-        neighbors.append(button);
+    // Sort by depth only when the ordering changes; front nodes naturally occlude back nodes.
+    const order = [...nodes].sort((a, b) => a.depth - b.depth);
+    const key = order.map((n) => n.id).join("|");
+    if (nodesLayer.dataset.order !== key) {
+      order.forEach((n) => nodesLayer.append(n.el));
+      nodesLayer.dataset.order = key;
+    }
+    const boxes = [];
+    const priority = (n) =>
+      n.id === active
+        ? -10
+        : n.kind === "core"
+          ? 0
+          : n.kind === "theme"
+            ? 1
+            : n.kind === "paper"
+              ? 2
+              : near.get(n.id).size >= 4
+                ? 3
+                : n.kind === "project"
+                  ? 4
+                  : 5;
+    [...nodes]
+      .sort((a, b) => priority(a) - priority(b) || b.depth - a.depth)
+      .forEach((n) => {
+        n.label.style.display = "none";
+        if (active && n.id !== active && !adjacent.has(n.id)) return;
+        if (!active && n.kind === "concept" && near.get(n.id).size < 3 && zoom < 1.18) return;
+        const font = n.kind === "core" ? 13.5 : n.kind === "theme" ? 12.2 : n.kind === "paper" ? 11.8 : 11.2;
+        const w = [...n.label.textContent].reduce((sum, c) => sum + (/[^\x00-\x7F]/.test(c) ? font : font * 0.6), 0);
+        if (n.sx < -w || n.sx > width + w || n.sy < -20 || n.sy > height + 20) return;
+        const candidates = [
+          { x: n.sx, y: n.sy + n.screenR + 15 },
+          { x: n.sx, y: n.sy - n.screenR - 6 },
+          { x: n.sx + n.screenR + 7 + w / 2, y: n.sy + font * 0.35 },
+          { x: n.sx - n.screenR - 7 - w / 2, y: n.sy + font * 0.35 },
+        ];
+        let placement = null;
+        for (const candidate of candidates) {
+          const x = Math.max(w / 2 + 3, Math.min(width - w / 2 - 3, candidate.x));
+          const y = candidate.y;
+          if (y < font + 3 || y > height - 3) continue;
+          const box = { x: x - w / 2 - 3, y: y - font - 2, w: w + 6, h: font + 6 };
+          if (n.id !== active && boxes.some((b) => box.x < b.x + b.w && box.x + box.w > b.x && box.y < b.y + b.h && box.y + box.h > b.y)) continue;
+          placement = { x, y, box };
+          break;
+        }
+        if (!placement) return;
+        n.label.style.display = "";
+        n.label.setAttribute("x", placement.x - n.sx);
+        n.label.setAttribute("y", placement.y - n.sy);
+        n.label.setAttribute("font-size", font);
+        n.label.setAttribute("text-anchor", "middle");
+        boxes.push(placement.box);
       });
+    svg.dataset.zoom = String(zoom);
+    svg.dataset.pan = `${panX},${panY}`;
+    svg.dataset.camera = `${angleY},${angleX}`;
+    svg.dataset.motion = reduced ? "reduced" : paused ? "paused" : active ? "focused" : "active";
   }
-  function clear() {
-    selected = null;
-    detail.hidden = true;
-    paint();
+  const canMove = () => visible && !document.hidden && !reduced && !paused && !hovered && !held && !drag && !pinch;
+  function tick(now) {
+    frame = null;
+    const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 0;
+    lastFrame = now;
+    if (canMove()) {
+      motionTime += dt;
+      viewX += (aimX - viewX) * 0.07;
+      viewY += (aimY - viewY) * 0.07;
+      physics();
+    }
+    render();
+    if (canMove()) frame = requestAnimationFrame(tick);
   }
-  function focus(id) {
-    nodes.forEach((node) => node.element.setAttribute("tabindex", node.id === id ? "0" : "-1"));
-    byId.get(id).element.focus({ preventScroll: true });
+  function requestRender() {
+    if (!frame) frame = requestAnimationFrame(tick);
   }
-  svg.addEventListener("keydown", (event) => {
-    const active = event.target.closest("[data-node-id]")?.dataset.nodeId || selected || "research-core";
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      select(active);
-    }
-    if (event.key.startsWith("Arrow")) {
-      event.preventDefault();
-      const ordered = [...nodes].sort((a, b) => a.level - b.level);
-      const delta = event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1;
-      const index = (ordered.findIndex((n) => n.id === active) + delta + ordered.length) % ordered.length;
-      focus(ordered[index].id);
-      select(ordered[index].id);
-    }
-    if (event.key === "+" || event.key === "=") {
-      event.preventDefault();
-      zoom(1.3);
-    }
-    if (event.key === "-") {
-      event.preventDefault();
-      zoom(1 / 1.3);
-    }
-    if (event.key === "0") {
-      event.preventDefault();
-      clear();
-      fit();
-    }
-  });
-  root.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") clear();
-  });
-  svg.addEventListener("dblclick", (event) => {
-    event.preventDefault();
-    clear();
-    fit();
-  });
+  function zoomAt(factor, x, y) {
+    const next = Math.max(0.65, Math.min(zoom * factor, 6));
+    panX = x - width / 2 - ((x - width / 2 - panX) * next) / zoom;
+    panY = y - height / 2 - ((y - height / 2 - panY) * next) / zoom;
+    zoom = next;
+    requestRender();
+  }
   svg.addEventListener(
     "wheel",
-    (event) => {
-      if (!event.ctrlKey && !svg.matches(":focus-within")) return;
-      event.preventDefault();
+    (e) => {
+      e.preventDefault();
       const box = svg.getBoundingClientRect();
-      zoom(Math.exp(-event.deltaY * 0.002), event.clientX - box.left, event.clientY - box.top);
+      zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX - box.left, e.clientY - box.top);
     },
     { passive: false }
   );
-  svg.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 && event.pointerType === "mouse") return;
+  svg.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 && e.pointerType === "mouse") return;
     svg.focus({ preventScroll: true });
-    const rect = svg.getBoundingClientRect();
-    pointers.set(event.pointerId, {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
-    svg.setPointerCapture(event.pointerId);
+    const r = svg.getBoundingClientRect();
+    pointers.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top });
+    svg.setPointerCapture(e.pointerId);
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
-      pinch = {
-        distance: Math.hypot(a.x - b.x, a.y - b.y),
-        x: (a.x + b.x) / 2,
-        y: (a.y + b.y) / 2,
-        scale,
-        tx,
-        ty,
-      };
+      pinch = { distance: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, zoom, panX, panY };
       drag = null;
     } else if (pointers.size === 1) {
-      const id = event.target.closest("[data-node-id]")?.dataset.nodeId;
-      const node = byId.get(id);
-      drag = {
-        id,
-        x: event.clientX,
-        y: event.clientY,
-        tx,
-        ty,
-        nx: node?.x,
-        ny: node?.y,
-      };
+      const id = e.target.closest("[data-node-id]")?.dataset.nodeId,
+        n = byId.get(id);
+      drag = { id, x: e.clientX, y: e.clientY, panX, panY, yaw, pitch, rotate: e.shiftKey, nx: n?.x, ny: n?.y };
       moved = false;
     }
     svg.classList.add("rg-dragging");
+    requestRender();
   });
-  svg.addEventListener("pointermove", (event) => {
-    if (!pointers.has(event.pointerId)) return;
-    const rect = svg.getBoundingClientRect();
-    pointers.set(event.pointerId, {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    });
+  svg.addEventListener("pointermove", (e) => {
+    const r = svg.getBoundingClientRect();
+    if (!pointers.has(e.pointerId)) {
+      aimX = ((e.clientX - r.left) / width - 0.5) * 0.08;
+      aimY = -((e.clientY - r.top) / height - 0.5) * 0.045;
+      requestRender();
+      return;
+    }
+    pointers.set(e.pointerId, { x: e.clientX - r.left, y: e.clientY - r.top });
     if (pinch && pointers.size === 2) {
       const [a, b] = [...pointers.values()];
-      const next = Math.max(fitScale * 0.7, Math.min((pinch.scale * Math.hypot(a.x - b.x, a.y - b.y)) / Math.max(pinch.distance, 1), fitScale * 8));
-      tx = (a.x + b.x) / 2 - ((pinch.x - pinch.tx) * next) / pinch.scale;
-      ty = (a.y + b.y) / 2 - ((pinch.y - pinch.ty) * next) / pinch.scale;
-      scale = next;
+      const next = Math.max(0.65, Math.min((pinch.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / Math.max(pinch.distance, 1), 6));
+      panX = (a.x + b.x) / 2 - width / 2 - ((pinch.x - width / 2 - pinch.panX) * next) / pinch.zoom;
+      panY = (a.y + b.y) / 2 - height / 2 - ((pinch.y - height / 2 - pinch.panY) * next) / pinch.zoom;
+      zoom = next;
       moved = true;
-      schedule();
+      requestRender();
       return;
     }
     if (!drag) return;
-    const dx = event.clientX - drag.x,
-      dy = event.clientY - drag.y;
+    const dx = e.clientX - drag.x,
+      dy = e.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 4) moved = true;
-    if (drag.id) {
-      const node = byId.get(drag.id);
-      node.x = drag.nx + dx / scale;
-      node.y = drag.ny + dy / scale;
+    if (drag.rotate) {
+      yaw = drag.yaw + dx * 0.004;
+      pitch = Math.max(-0.8, Math.min(0.8, drag.pitch + dy * 0.003));
+    } else if (drag.id) {
+      const n = byId.get(drag.id);
+      n.x = drag.nx + dx / (baseScale * zoom * n.perspective);
+      n.y = drag.ny + dy / (baseScale * zoom * n.perspective);
+      n.ax = n.x;
+      n.ay = n.y;
+      energy = 0.1;
     } else {
-      tx = drag.tx + dx;
-      ty = drag.ty + dy;
+      panX = drag.panX + dx;
+      panY = drag.panY + dy;
     }
-    schedule();
+    requestRender();
   });
-  function finish(event) {
-    pointers.delete(event.pointerId);
-    if (svg.hasPointerCapture(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+  function end(e) {
+    pointers.delete(e.pointerId);
+    if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
     if (pinch) {
       pinch = null;
       drag = null;
     } else if (drag) {
-      const id = drag.id;
-      if (!moved && event.type !== "pointercancel") {
-        if (id) {
-          select(id);
-          focus(id);
-        } else clear();
-      }
+      if (!moved && e.type !== "pointercancel") held = held === drag.id ? null : drag.id || null;
       drag = null;
     }
     if (!pointers.size) svg.classList.remove("rg-dragging");
+    requestRender();
   }
-  svg.addEventListener("pointerup", finish);
-  svg.addEventListener("pointercancel", finish);
+  svg.addEventListener("pointerup", end);
+  svg.addEventListener("pointercancel", end);
+  svg.addEventListener("pointerleave", () => {
+    hovered = null;
+    aimX = aimY = 0;
+    requestRender();
+  });
+  svg.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    held = hovered = null;
+    yaw = 0.19;
+    pitch = -0.09;
+    viewX = viewY = aimX = aimY = 0;
+    fit();
+    requestRender();
+  });
+  svg.addEventListener("keydown", (e) => {
+    if (e.key === " ") {
+      e.preventDefault();
+      paused = !paused;
+      requestRender();
+    }
+    if (e.key === "Escape") {
+      held = hovered = null;
+      requestRender();
+    }
+    if (e.key === "Home" || e.key === "0") {
+      e.preventDefault();
+      held = null;
+      fit();
+      requestRender();
+    }
+    if (e.key === "+" || e.key === "=") {
+      e.preventDefault();
+      zoomAt(1.25, width / 2, height / 2);
+    }
+    if (e.key === "-") {
+      e.preventDefault();
+      zoomAt(1 / 1.25, width / 2, height / 2);
+    }
+    if (e.key.startsWith("Arrow")) {
+      e.preventDefault();
+      const dx = e.key === "ArrowLeft" ? -20 : e.key === "ArrowRight" ? 20 : 0,
+        dy = e.key === "ArrowUp" ? -20 : e.key === "ArrowDown" ? 20 : 0;
+      if (e.shiftKey) {
+        yaw += dx * 0.003;
+        pitch += dy * 0.003;
+      } else {
+        panX += dx;
+        panY += dy;
+      }
+      requestRender();
+    }
+  });
+  motionPreference.addEventListener("change", (e) => {
+    reduced = e.matches;
+    if (reduced) energy = 0;
+    lastFrame = 0;
+    requestRender();
+  });
+  document.addEventListener("visibilitychange", () => {
+    lastFrame = 0;
+    requestRender();
+  });
+  new IntersectionObserver(
+    (entries) => {
+      visible = entries[0].isIntersecting;
+      lastFrame = 0;
+      requestRender();
+    },
+    { rootMargin: "30px" }
+  ).observe(stage);
   new ResizeObserver(() => {
     width = stage.clientWidth;
     height = stage.clientHeight;
-    const mode = width < 600;
-    if (mode !== narrow) {
-      narrow = mode;
-      layout(mode);
+    const mobile = width < 600;
+    if (mobile !== narrow) {
+      narrow = mobile;
+      layout(mobile);
     }
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
     fit();
+    requestRender();
   }).observe(stage);
 })();
